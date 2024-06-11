@@ -8,6 +8,7 @@ using Jackett.Common.Exceptions;
 using Jackett.Common.Extensions;
 using Jackett.Common.Models;
 using Jackett.Common.Models.IndexerConfig;
+using Jackett.Common.Services;
 using Jackett.Common.Services.Interfaces;
 using Jackett.Common.Utils;
 using Jackett.Common.Utils.Clients;
@@ -45,7 +46,7 @@ namespace Jackett.Common.Indexers
         public virtual string[] Tags { get; protected set; }
 
         // https://github.com/Jackett/Jackett/issues/3292#issuecomment-838586679
-        private TimeSpan HealthyStatusValidity => cacheService.CacheTTL + cacheService.CacheTTL;
+        private TimeSpan HealthyStatusValidity => CacheManager.CurrentCacheService.CacheTTL + CacheManager.CurrentCacheService.CacheTTL;
         private static readonly TimeSpan ErrorStatusValidity = TimeSpan.FromMinutes(10);
         private static readonly TimeSpan MaxStatusValidity = TimeSpan.FromDays(1);
 
@@ -56,6 +57,8 @@ namespace Jackett.Common.Indexers
         protected IIndexerConfigurationService configurationService;
         protected IProtectionService protectionService;
         protected ICacheService cacheService;
+
+        protected CacheManager CacheManager => CacheManagerProvider.CacheManager;
 
         protected ConfigurationData configData;
 
@@ -354,7 +357,7 @@ namespace Jackett.Common.Indexers
 
             if (queryCopy.Cache)
             {
-                var cachedReleases = cacheService.Search(this, queryCopy);
+                var cachedReleases = CacheManager.Search(this, queryCopy);
                 if (cachedReleases != null)
                     return new IndexerResult(this, cachedReleases, 0, true);
             }
@@ -371,7 +374,7 @@ namespace Jackett.Common.Indexers
 
                 results = FilterResults(queryCopy, results).ToList();
                 results = FixResults(queryCopy, results).ToList();
-                cacheService.CacheResults(this, queryCopy, results.ToList());
+                CacheManager.CacheResults(this, queryCopy, results.ToList());
                 errorCount = 0;
                 expireAt = DateTime.Now.Add(HealthyStatusValidity);
                 return new IndexerResult(this, results, sw.ElapsedMilliseconds, false);

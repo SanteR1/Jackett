@@ -180,13 +180,13 @@ namespace Jackett.Common.Services
 
         private bool IsCacheEnabled()
         {
-            if (!_serverConfig.CacheEnabled)
+            if (_serverConfig.CacheType == CacheType.Disabled)
             {
                 // remove cached results just in case user disabled cache recently
                 _cache.Clear();
                 _logger.Debug("CACHE IsCacheEnabled => false");
             }
-            return _serverConfig.CacheEnabled;
+            return true;
         }
 
         private void PruneCacheByTtl()
@@ -203,6 +203,7 @@ namespace Jackett.Common.Services
                     trackerCache.Queries.Remove(queryHash);
                 prunedCounter += queriesToRemove.Count;
             }
+
             if (_logger.IsDebugEnabled)
             {
                 _logger.Debug($"CACHE PruneCacheByTtl / Pruned queries: {prunedCounter}");
@@ -234,6 +235,7 @@ namespace Jackett.Common.Services
                 _logger.Debug($"CACHE PruneCacheByMaxResultsPerIndexer / Indexer: {trackerCache.TrackerId} / Pruned queries: {prunedCounter}");
                 PrintCacheStatus();
             }
+
         }
 
         private string GetQueryHash(TorznabQuery query)
