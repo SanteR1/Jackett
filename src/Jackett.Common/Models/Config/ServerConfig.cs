@@ -23,7 +23,7 @@ namespace Jackett.Common.Models.Config
             CacheMaxResultsPerIndexer = 1000;
             FlareSolverrMaxTimeout = 55000;
             RuntimeSettings = runtimeSettings;
-            CacheType = "Memory";
+            CacheType = CacheType.Memory;
         }
 
         [OnDeserialized]
@@ -54,7 +54,7 @@ namespace Jackett.Common.Models.Config
         public string OmdbApiUrl { get; set; }
 
         /**/
-        public string CacheType { get; set; }
+        public CacheType CacheType { get; set; }
         public string SQLiteConnectionString { get; set; }
         public string MongoDBConnectionString { get; set; }
         /**/

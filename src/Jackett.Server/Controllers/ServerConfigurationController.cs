@@ -112,6 +112,7 @@ namespace Jackett.Server.Controllers
             }
 
             var cacheEnabled = config.cache_enabled;
+            var cacheType = config.cache_type;
             var cacheTtl = config.cache_ttl;
             var cacheMaxResultsPerIndexer = config.cache_max_results_per_indexer;
             var omdbApiKey = config.omdbkey;
@@ -129,6 +130,7 @@ namespace Jackett.Server.Controllers
             serverConfig.BasePathOverride = basePathOverride;
             serverConfig.BaseUrlOverride = baseUrlOverride;
             serverConfig.CacheEnabled = cacheEnabled;
+            serverConfig.CacheType = cacheType;
             serverConfig.CacheTtl = cacheTtl;
             serverConfig.CacheMaxResultsPerIndexer = cacheMaxResultsPerIndexer;
 

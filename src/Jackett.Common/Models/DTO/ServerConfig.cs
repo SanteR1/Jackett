@@ -37,6 +37,8 @@ namespace Jackett.Common.Models.DTO
         [DataMember]
         public bool cache_enabled { get; set; }
         [DataMember]
+        public CacheType cache_type { get; set; }
+        [DataMember]
         public long cache_ttl { get; set; }
         [DataMember]
         public long cache_max_results_per_indexer { get; set; }
@@ -85,6 +87,7 @@ namespace Jackett.Common.Models.DTO
             basepathoverride = config.BasePathOverride;
             baseurloverride = config.BaseUrlOverride;
             cache_enabled = config.CacheEnabled;
+            cache_type = config.CacheType;
             cache_ttl = config.CacheTtl;
             cache_max_results_per_indexer = config.CacheMaxResultsPerIndexer;
             flaresolverrurl = config.FlareSolverrUrl;

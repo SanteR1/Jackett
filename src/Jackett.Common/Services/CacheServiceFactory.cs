@@ -17,17 +17,17 @@ namespace Jackett.Common.Services
             _context = context;
         }
 
-        public ICacheService CreateCacheService(string cacheType)
+        public ICacheService CreateCacheService(CacheType cacheType)
         {
             switch (cacheType)
             {
-                case "Memory":
+                case CacheType.Memory:
                     return _context.Resolve<CacheService>();
-                case "SQLite":
+                case CacheType.SqLite:
                     return _context.Resolve<SQLiteCacheService>();
-                case "MongoDB":
+                case CacheType.MongoDb:
                     return _context.Resolve<MongoDBCacheService>();
-                case "None":
+                case CacheType.Disabled:
                     return _context.Resolve<NoCacheService>();
                 default:
                     throw new ArgumentException($"Unknown cache type: {cacheType}");
