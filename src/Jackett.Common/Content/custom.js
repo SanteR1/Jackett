@@ -127,6 +127,7 @@ function loadJackettSettings() {
         $("#jackett-logging").attr('checked', data.logging);
 
         $("#jackett-cache-enabled").attr('checked', data.cache_enabled);
+        $("#jackett-cache-type").val(data.cache_type);
         $("#jackett-cache-ttl").val(data.cache_ttl);
         $("#jackett-cache-max-results-per-indexer").val(data.cache_max_results_per_indexer);
         if (!data.cache_enabled) {
