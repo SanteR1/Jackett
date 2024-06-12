@@ -25,6 +25,7 @@ namespace Jackett.Common.Services
             var client = new MongoClient(connectionString);
             _database = client.GetDatabase("CacheDatabase");
             _collection = _database.GetCollection<CacheEntry>("CacheEntries");
+            Initialize();
         }
 
         public void Initialize()

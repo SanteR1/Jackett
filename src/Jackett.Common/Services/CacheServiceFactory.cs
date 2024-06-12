@@ -1,23 +1,37 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Autofac;
 using Jackett.Common.Models.Config;
 using Jackett.Common.Services.Interfaces;
 using NLog;
 
 namespace Jackett.Common.Services
 {
-    public static class CacheServiceFactory
+    public class CacheServiceFactory
     {
-        public static ICacheService CreateCacheService(string cacheType, Logger logger, ServerConfig serverConfig, string connectionString)
+        private readonly IComponentContext _context;
+
+        public CacheServiceFactory(IComponentContext context)
         {
-            return cacheType.ToLower() switch
+            _context = context;
+        }
+
+        public ICacheService CreateCacheService(string cacheType)
+        {
+            switch (cacheType)
             {
-                "memory" => new CacheService(logger, serverConfig),
-                "sqlite" => new SQLiteCacheService(logger, connectionString),
-                "mongodb" => new MongoDBCacheService(logger, connectionString),
-                _ => throw new ArgumentException("Invalid cache type specified"),
-            };
+                case "Memory":
+                    return _context.Resolve<CacheService>();
+                case "SQLite":
+                    return _context.Resolve<SQLiteCacheService>();
+                case "MongoDB":
+                    return _context.Resolve<MongoDBCacheService>();
+                case "None":
+                    return _context.Resolve<NoCacheService>();
+                default:
+                    throw new ArgumentException($"Unknown cache type: {cacheType}");
+            }
         }
     }
 }

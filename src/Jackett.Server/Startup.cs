@@ -93,9 +93,26 @@ namespace Jackett.Server
             builder.RegisterType<SecurityService>().As<ISecurityService>().SingleInstance();
             builder.RegisterType<ServerService>().As<IServerService>().SingleInstance();
             builder.RegisterType<ProtectionService>().As<IProtectionService>().SingleInstance();
-            builder.RegisterType<CacheService>().As<ICacheService>().SingleInstance();
+            //builder.RegisterType<CacheService>().As<ICacheService>().SingleInstance();
             builder.RegisterType<ServiceConfigService>().As<IServiceConfigService>().SingleInstance();
             builder.RegisterType<FilePermissionService>().As<IFilePermissionService>().SingleInstance();
+
+            /**/
+            builder.RegisterType<CacheService>().AsSelf().SingleInstance();
+            builder.RegisterType<SQLiteCacheService>().AsSelf().SingleInstance();
+            builder.RegisterType<MongoDBCacheService>().AsSelf().SingleInstance();
+            builder.RegisterType<NoCacheService>().AsSelf().SingleInstance();
+            // Register the factory
+            builder.RegisterType<CacheServiceFactory>().AsSelf().SingleInstance();
+
+            // Register ICacheService using a delegate
+            builder.Register<ICacheService>(ctx =>
+            {
+                var factory = ctx.Resolve<CacheServiceFactory>();
+                var config = ctx.Resolve<ServerConfig>(); // Assuming ServerConfig is registered and holds the cache type
+                return factory.CreateCacheService(config.CacheType); // Assuming CacheType is a string property in ServerConfig
+            }).SingleInstance();
+            /**/
 
             var container = builder.Build();
             Helper.ApplicationContainer = container;
