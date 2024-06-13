@@ -1,19 +1,31 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Autofac;
 using Jackett.Common.Indexers;
 using Jackett.Common.Models;
+using Jackett.Common.Models.Config;
 using Jackett.Common.Services.Interfaces;
+using Microsoft.Extensions.Options;
 
 namespace Jackett.Common.Services
 {
     public class CacheManager
     {
-        private readonly ICacheService _cacheService;
+        private readonly CacheServiceFactory _factory;
+        private ICacheService _cacheService;
 
-        public CacheManager(ICacheService cacheService)
+        public CacheManager(CacheServiceFactory factory, ServerConfig serverConfig)
         {
-            _cacheService = cacheService;
+            _factory = factory;
+            _cacheService = factory.CreateCacheService(serverConfig.CacheType);
+        }
+
+        public ICacheService CurrentCacheService => _cacheService;
+
+        public void ChangeCacheType(CacheType newCacheType)
+        {
+            _cacheService = _factory.CreateCacheService(newCacheType);
         }
 
         public void CacheResults(IIndexer indexer, TorznabQuery query, List<ReleaseInfo> releases)

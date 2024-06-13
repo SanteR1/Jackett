@@ -6,9 +6,11 @@ using System.Net;
 using System.Threading;
 using Jackett.Common.Models;
 using Jackett.Common.Models.Config;
+using Jackett.Common.Services;
 using Jackett.Common.Services.Interfaces;
 using Jackett.Common.Utils;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Driver.Core.Configuration;
 using NLog;
 
 namespace Jackett.Server.Controllers
@@ -24,6 +26,7 @@ namespace Jackett.Server.Controllers
         private readonly IIndexerManagerService indexerService;
         private readonly ISecurityService securityService;
         private readonly ICacheService cacheService;
+        //private readonly ICacheManager  cacheManager;
         private readonly IUpdateService updater;
         private readonly ILogCacheService logCache;
         private readonly Logger logger;
@@ -129,10 +132,19 @@ namespace Jackett.Server.Controllers
             serverConfig.UpdatePrerelease = preRelease;
             serverConfig.BasePathOverride = basePathOverride;
             serverConfig.BaseUrlOverride = baseUrlOverride;
+
             serverConfig.CacheEnabled = cacheEnabled;
             serverConfig.CacheType = cacheType;
             serverConfig.CacheTtl = cacheTtl;
             serverConfig.CacheMaxResultsPerIndexer = cacheMaxResultsPerIndexer;
+
+            /**/
+            //var connectionString = config.connectionstring;
+            var connectionString = "config.connectionstring";
+            ICacheService cacheService = CacheServiceFactory.CreateCacheService(CacheType.MongoDb);
+            CacheManager cacheManager = new CacheManager(cacheService);
+            /**/
+
 
             serverConfig.RuntimeSettings.BasePath = serverService.BasePath();
             configService.SaveConfig(serverConfig);
