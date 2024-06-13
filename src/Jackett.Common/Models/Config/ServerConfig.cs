@@ -24,6 +24,7 @@ namespace Jackett.Common.Models.Config
             FlareSolverrMaxTimeout = 55000;
             RuntimeSettings = runtimeSettings;
             CacheType = CacheType.Memory;
+            //ConnectionString = string.Empty;
         }
 
         [OnDeserialized]
@@ -55,6 +56,7 @@ namespace Jackett.Common.Models.Config
 
         /**/
         public CacheType CacheType { get; set; }
+        public string ConnectionString { get; set; }
         public string SQLiteConnectionString { get; set; }
         public string MongoDBConnectionString { get; set; }
         /**/

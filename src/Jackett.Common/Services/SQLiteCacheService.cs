@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using Amazon.Auth.AccessControlPolicy;
 using Jackett.Common.Indexers;
 using Jackett.Common.Models;
+using Jackett.Common.Models.DTO;
 using Jackett.Common.Services.Interfaces;
 using Microsoft.Data.Sqlite;
 using Newtonsoft.Json;
@@ -12,10 +14,11 @@ using NLog;
 
 namespace Jackett.Common.Services
 {
-    public class SQLiteCacheService : IDatabaseCacheService
+    public class SQLiteCacheService : ICacheService
     {
         private readonly Logger _logger;
         private readonly string _connectionString;
+        private readonly ServerConfig _config;
 
         public SQLiteCacheService(Logger logger, string connectionString)
         {
@@ -26,7 +29,7 @@ namespace Jackett.Common.Services
 
         public void Initialize()
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SqliteConnection("Data Source ="+ _connectionString))
             {
                 connection.Open();
                 var command = connection.CreateCommand();
@@ -51,7 +54,7 @@ namespace Jackett.Common.Services
             if (query.IsTest)
                 return;
 
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SqliteConnection("Data Source =" + _connectionString))
             {
                 connection.Open();
                 var command = connection.CreateCommand();
@@ -73,7 +76,7 @@ namespace Jackett.Common.Services
 
         public List<ReleaseInfo> Search(IIndexer indexer, TorznabQuery query)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SqliteConnection("Data Source =" + _connectionString))
             {
                 connection.Open();
                 var command = connection.CreateCommand();
@@ -98,7 +101,7 @@ namespace Jackett.Common.Services
 
         public IReadOnlyList<TrackerCacheResult> GetCachedResults()
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SqliteConnection("Data Source =" + _connectionString))
             {
                 connection.Open();
                 var command = connection.CreateCommand();
@@ -128,7 +131,7 @@ namespace Jackett.Common.Services
 
         public void CleanIndexerCache(IIndexer indexer)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SqliteConnection("Data Source =" + _connectionString))
             {
                 connection.Open();
                 var command = connection.CreateCommand();
@@ -140,7 +143,7 @@ namespace Jackett.Common.Services
 
         public void CleanCache()
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            using (var connection = new SqliteConnection("Data Source =" + _connectionString))
             {
                 connection.Open();
                 var command = connection.CreateCommand();

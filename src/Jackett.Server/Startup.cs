@@ -102,16 +102,17 @@ namespace Jackett.Server
             builder.RegisterType<SQLiteCacheService>().AsSelf().SingleInstance();
             builder.RegisterType<MongoDBCacheService>().AsSelf().SingleInstance();
             builder.RegisterType<NoCacheService>().AsSelf().SingleInstance();
-            // Register the factory
+
             builder.RegisterType<CacheServiceFactory>().AsSelf().SingleInstance();
 
-            // Register ICacheService using a delegate
             builder.Register<ICacheService>(ctx =>
             {
                 var factory = ctx.Resolve<CacheServiceFactory>();
-                var config = ctx.Resolve<ServerConfig>(); // Assuming ServerConfig is registered and holds the cache type
-                return factory.CreateCacheService(config.CacheType); // Assuming CacheType is a string property in ServerConfig
+                var config = ctx.Resolve<ServerConfig>();
+                return factory.CreateCacheService(config.CacheType, config.ConnectionString);
             }).SingleInstance();
+
+            builder.RegisterType<CacheManager>().AsSelf().SingleInstance();
             /**/
 
             var container = builder.Build();

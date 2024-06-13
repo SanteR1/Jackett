@@ -180,13 +180,13 @@ namespace Jackett.Common.Services
 
         private bool IsCacheEnabled()
         {
-            if (!_serverConfig.CacheEnabled)
+            if (_serverConfig.CacheType == CacheType.Disabled)
             {
                 // remove cached results just in case user disabled cache recently
                 _cache.Clear();
                 _logger.Debug("CACHE IsCacheEnabled => false");
             }
-            return _serverConfig.CacheEnabled;
+            return true;
         }
 
         private void PruneCacheByTtl()

@@ -18,14 +18,19 @@ namespace Jackett.Common.Services
         public CacheManager(CacheServiceFactory factory, ServerConfig serverConfig)
         {
             _factory = factory;
-            _cacheService = factory.CreateCacheService(serverConfig.CacheType);
+            _cacheService = factory.CreateCacheService(serverConfig.CacheType, serverConfig.ConnectionString);
         }
 
         public ICacheService CurrentCacheService => _cacheService;
 
-        public void ChangeCacheType(CacheType newCacheType)
+        public void UpdateCacheService(ICacheService cacheService)
         {
-            _cacheService = _factory.CreateCacheService(newCacheType);
+            _cacheService = cacheService;
+        }
+
+        public void ChangeCacheType(CacheType newCacheType, string str)
+        {
+            _cacheService = _factory.CreateCacheService(newCacheType,str);
         }
 
         public void CacheResults(IIndexer indexer, TorznabQuery query, List<ReleaseInfo> releases)
