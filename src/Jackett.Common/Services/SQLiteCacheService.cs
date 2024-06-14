@@ -20,12 +20,13 @@ namespace Jackett.Common.Services
     {
         private readonly Logger _logger;
         private readonly string _connectionString;
-        private readonly ServerConfig _config;
+        private readonly ServerConfig _serverConfig;
 
-        public SQLiteCacheService(Logger logger, string connectionString)
+        public SQLiteCacheService(Logger logger, string connectionString, ServerConfig serverConfig)
         {
             _logger = logger;
             _connectionString = connectionString;
+            _serverConfig = serverConfig;
             Initialize();
         }
 
@@ -154,7 +155,7 @@ namespace Jackett.Common.Services
             }
         }
 
-        public TimeSpan CacheTTL => TimeSpan.FromSeconds(_config.CacheTtl); // Example TTL
+        public TimeSpan CacheTTL => TimeSpan.FromSeconds(_serverConfig.CacheTtl);
 
         private string GetQueryHash(TorznabQuery query)
         {

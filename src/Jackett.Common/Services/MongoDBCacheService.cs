@@ -4,137 +4,129 @@ using System.Security.Cryptography;
 using System.Text;
 using Jackett.Common.Indexers;
 using Jackett.Common.Models;
+using Jackett.Common.Models.Config;
+using Jackett.Common.Models.DTO;
 using Jackett.Common.Services.Interfaces;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using Newtonsoft.Json;
 using NLog;
+using ServerConfig = Jackett.Common.Models.Config.ServerConfig;
 
 namespace Jackett.Common.Services
 {
-    public class MongoDBCacheService : IDatabaseCacheService
+    public class MongoDBCacheService : ICacheService
     {
         private readonly Logger _logger;
+        private readonly string _connectionString;
         private readonly IMongoDatabase _database;
-        private readonly IMongoCollection<CacheEntry> _collection;
-        private readonly SHA256Managed _sha256 = new SHA256Managed();
+        private readonly IMongoCollection<CacheEntry> _cacheEntries;
+        private readonly ServerConfig _serverConfig;
 
-        public MongoDBCacheService(Logger logger, string connectionString)
+        public MongoDBCacheService(Logger logger, string connectionString, ServerConfig serverConfig)
         {
             _logger = logger;
-            var client = new MongoClient(connectionString);
-            _database = client.GetDatabase("CacheDatabase");
-            _collection = _database.GetCollection<CacheEntry>("CacheEntries");
-            Initialize();
-        }
-
-        public void Initialize()
-        {
-            
+            _connectionString = connectionString;
+            _serverConfig = serverConfig;
+            try
+            {
+                var client = new MongoClient("mongodb://" + connectionString);
+                _database = client.GetDatabase("CacheDatabase");
+                _cacheEntries = _database.GetCollection<CacheEntry>("CacheEntries");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to initialize MongoDB connection");
+                throw;
+            }
         }
 
         public void CacheResults(IIndexer indexer, TorznabQuery query, List<ReleaseInfo> releases)
         {
-            var queryHash = GetQueryHash(query);
+            if (query.IsTest)
+                return;
 
             var cacheEntry = new CacheEntry
             {
                 IndexerId = indexer.Id,
-                QueryHash = queryHash,
+                QueryHash = GetQueryHash(query),
                 Created = DateTime.Now,
-                Results = releases,
+                Results = JsonConvert.SerializeObject(releases),
                 TrackerName = indexer.Name,
                 TrackerType = indexer.Type
             };
-
-            var filter = Builders<CacheEntry>.Filter.Eq(e => e.IndexerId, indexer.Id) & Builders<CacheEntry>.Filter.Eq(e => e.QueryHash, queryHash);
-            _collection.ReplaceOne(filter, cacheEntry, new ReplaceOptions { IsUpsert = true });
-
-            _logger.Debug($"CACHE CacheResults / Indexer: {indexer.Id} / Added: {releases.Count} releases");
+            _cacheEntries.InsertOne(cacheEntry);
         }
 
         public List<ReleaseInfo> Search(IIndexer indexer, TorznabQuery query)
         {
-            var queryHash = GetQueryHash(query);
-
-            var filter = Builders<CacheEntry>.Filter.Eq(e => e.IndexerId, indexer.Id) & Builders<CacheEntry>.Filter.Eq(e => e.QueryHash, queryHash);
-            var cacheEntry = _collection.Find(filter).FirstOrDefault();
-
+            var filter = Builders<CacheEntry>.Filter.And(
+                Builders<CacheEntry>.Filter.Eq(e => e.IndexerId, indexer.Id),
+                Builders<CacheEntry>.Filter.Eq(e => e.QueryHash, GetQueryHash(query))
+            );
+            var cacheEntry = _cacheEntries.Find(filter).FirstOrDefault();
             if (cacheEntry != null)
             {
-                _logger.Debug($"CACHE Search Hit / Indexer: {indexer.Id} / Found: {cacheEntry.Results.Count} releases");
-                return cacheEntry.Results;
+                return JsonConvert.DeserializeObject<List<ReleaseInfo>>(cacheEntry.Results);
             }
-            else
-            {
-                _logger.Debug($"CACHE Search Miss / Indexer: {indexer.Id}");
-                return null;
-            }
+            return null;
         }
 
         public IReadOnlyList<TrackerCacheResult> GetCachedResults()
         {
             var results = new List<TrackerCacheResult>();
-
-            var cacheEntries = _collection.Find(FilterDefinition<CacheEntry>.Empty).SortByDescending(e => e.Created).Limit(3000).ToList();
-
-            foreach (var entry in cacheEntries)
+            var cacheEntries = _cacheEntries.Find(_ => true).ToList();
+            foreach (var cacheEntry in cacheEntries)
             {
-                foreach (var release in entry.Results)
+                var releases = JsonConvert.DeserializeObject<List<ReleaseInfo>>(cacheEntry.Results);
+                foreach (var release in releases)
                 {
                     results.Add(new TrackerCacheResult(release)
                     {
-                        FirstSeen = entry.Created,
-                        Tracker = entry.TrackerName,
-                        TrackerId = entry.IndexerId,
-                        TrackerType = entry.TrackerType
+                        FirstSeen = cacheEntry.Created,
+                        Tracker = cacheEntry.TrackerName,
+                        TrackerId = cacheEntry.IndexerId,
+                        TrackerType = cacheEntry.TrackerType
                     });
                 }
             }
-
-            _logger.Debug($"CACHE GetCachedResults / Results: {results.Count}");
             return results;
         }
 
         public void CleanIndexerCache(IIndexer indexer)
         {
             var filter = Builders<CacheEntry>.Filter.Eq(e => e.IndexerId, indexer.Id);
-            _collection.DeleteMany(filter);
-
-            _logger.Debug($"CACHE CleanIndexerCache / Indexer: {indexer.Id}");
+            _cacheEntries.DeleteMany(filter);
         }
 
         public void CleanCache()
         {
-            _collection.DeleteMany(FilterDefinition<CacheEntry>.Empty);
-
-            _logger.Debug("CACHE CleanCache");
+            _cacheEntries.DeleteMany(_ => true);
         }
 
-        public TimeSpan CacheTTL => TimeSpan.FromDays(1); // example TTL
+        public TimeSpan CacheTTL => TimeSpan.FromSeconds(_serverConfig.CacheTtl);
 
         private string GetQueryHash(TorznabQuery query)
         {
-            var json = GetSerializedQuery(query);
-            return BitConverter.ToString(_sha256.ComputeHash(Encoding.UTF8.GetBytes(json)));
-        }
-
-        private static string GetSerializedQuery(TorznabQuery query)
-        {
             var json = JsonConvert.SerializeObject(query);
             json = json.Replace("\"SearchTerm\":null", "\"SearchTerm\":\"\"");
-            return json;
+            using (var sha256 = System.Security.Cryptography.SHA256.Create())
+            {
+                return BitConverter.ToString(sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(json))).Replace("-", "");
+            }
         }
-    }
 
-    public class CacheEntry
-    {
-        public ObjectId Id { get; set; }
-        public string IndexerId { get; set; }
-        public string QueryHash { get; set; }
-        public DateTime Created { get; set; }
-        public List<ReleaseInfo> Results { get; set; }
-        public string TrackerName { get; set; }
-        public string TrackerType { get; set; }
+        public class CacheEntry
+        {
+            [BsonId]
+            public ObjectId Id { get; set; }
+            public string IndexerId { get; set; }
+            public string QueryHash { get; set; }
+            public DateTime Created { get; set; }
+            public string Results { get; set; }
+            public string TrackerName { get; set; }
+            public string TrackerType { get; set; }
+        }
     }
 }
