@@ -24,7 +24,8 @@ namespace Jackett.Common.Services
                 CacheType.Memory => _context.Resolve<CacheService>(),
                 CacheType.SqLite => _context.Resolve<SQLiteCacheService>(
                     new TypedParameter(typeof(string), str)),
-                CacheType.MongoDb => _context.Resolve<MongoDBCacheService>(),
+                CacheType.MongoDb => _context.Resolve<MongoDBCacheService>(
+                    new TypedParameter(typeof(string), str)),
                 CacheType.Disabled => _context.Resolve<NoCacheService>(),
                 _ => throw new ArgumentOutOfRangeException(nameof(cacheType), cacheType, null)
             };

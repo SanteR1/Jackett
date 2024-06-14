@@ -6,11 +6,13 @@ using System.Text;
 using Amazon.Auth.AccessControlPolicy;
 using Jackett.Common.Indexers;
 using Jackett.Common.Models;
+using Jackett.Common.Models.Config;
 using Jackett.Common.Models.DTO;
 using Jackett.Common.Services.Interfaces;
 using Microsoft.Data.Sqlite;
 using Newtonsoft.Json;
 using NLog;
+using ServerConfig = Jackett.Common.Models.Config.ServerConfig;
 
 namespace Jackett.Common.Services
 {
@@ -152,7 +154,7 @@ namespace Jackett.Common.Services
             }
         }
 
-        public TimeSpan CacheTTL => TimeSpan.FromSeconds(3600); // Example TTL
+        public TimeSpan CacheTTL => TimeSpan.FromSeconds(_config.CacheTtl); // Example TTL
 
         private string GetQueryHash(TorznabQuery query)
         {

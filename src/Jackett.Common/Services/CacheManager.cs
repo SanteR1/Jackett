@@ -30,6 +30,11 @@ namespace Jackett.Common.Services
 
         public void ChangeCacheType(CacheType newCacheType, string str)
         {
+            if (CurrentCacheService is CacheService && newCacheType != CacheType.Memory)
+            {
+                CurrentCacheService.CleanCache();
+            }
+            
             _cacheService = _factory.CreateCacheService(newCacheType,str);
         }
 
