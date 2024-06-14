@@ -8,6 +8,7 @@ using Jackett.Common.Exceptions;
 using Jackett.Common.Extensions;
 using Jackett.Common.Models;
 using Jackett.Common.Models.IndexerConfig;
+using Jackett.Common.Services;
 using Jackett.Common.Services.Interfaces;
 using Jackett.Common.Utils;
 using Jackett.Common.Utils.Clients;
@@ -53,6 +54,8 @@ namespace Jackett.Common.Indexers
         protected IIndexerConfigurationService configurationService;
         protected IProtectionService protectionService;
         protected ICacheService cacheService;
+
+        protected CacheManager CacheManager => CacheManagerProvider.CacheManager;
 
         protected ConfigurationData configData;
 
@@ -351,7 +354,7 @@ namespace Jackett.Common.Indexers
 
             if (queryCopy.Cache)
             {
-                var cachedReleases = cacheService.Search(this, queryCopy);
+                var cachedReleases = CacheManager.Search(this, queryCopy);
                 if (cachedReleases != null)
                     return new IndexerResult(this, cachedReleases, 0, true);
             }

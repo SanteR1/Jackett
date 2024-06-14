@@ -112,6 +112,13 @@ namespace Jackett.Server
                 return factory.CreateCacheService(config.CacheType, config.ConnectionString);
             }).SingleInstance();
 
+            // Регистрация ServerConfig
+            //builder.Register(ctx =>
+            //{
+            //    var configService = ctx.Resolve<ConfigurationService>();
+            //    return configService.BuildServerConfig(runtimeSettings);
+            //}).SingleInstance();
+
             builder.RegisterType<CacheManager>().AsSelf().SingleInstance();
             /**/
 
