@@ -24,7 +24,6 @@ namespace Jackett.Common.Models.Config
             FlareSolverrMaxTimeout = 55000;
             RuntimeSettings = runtimeSettings;
             CacheType = CacheType.Memory;
-            //ConnectionString = string.Empty;
         }
 
         [OnDeserialized]
@@ -53,13 +52,8 @@ namespace Jackett.Common.Models.Config
         public int FlareSolverrMaxTimeout { get; set; }
         public string OmdbApiKey { get; set; }
         public string OmdbApiUrl { get; set; }
-
-        /**/
         public CacheType CacheType { get; set; }
         public string ConnectionString { get; set; }
-        public string SQLiteConnectionString { get; set; }
-        public string MongoDBConnectionString { get; set; }
-        /**/
 
         /// <summary>
         /// Ignore as we don't really want to be saving settings specified in the command line.

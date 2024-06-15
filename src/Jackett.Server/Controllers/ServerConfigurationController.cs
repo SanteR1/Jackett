@@ -26,19 +26,14 @@ namespace Jackett.Server.Controllers
         private readonly IIndexerManagerService indexerService;
         private readonly ISecurityService securityService;
         private readonly ICacheService cacheService;
-        //private readonly ICacheManager  cacheManager;
+        private readonly CacheManager _cacheManager;
         private readonly IUpdateService updater;
         private readonly ILogCacheService logCache;
         private readonly Logger logger;
 
-        /**/
-        private readonly CacheServiceFactory _cacheServiceFactory;
-        private readonly CacheManager _cacheManager;
-        /**/
-
         public ServerConfigurationController(IConfigurationService c, IServerService s, IProcessService p,
             IIndexerManagerService i, ISecurityService ss, ICacheService cs, IUpdateService u, ILogCacheService lc,
-            Logger l, ServerConfig sc, CacheServiceFactory cacheServiceFactory, CacheManager cacheManager)
+            Logger l, ServerConfig sc, CacheManager cacheManager)
         {
             configService = c;
             serverConfig = sc;
@@ -50,12 +45,7 @@ namespace Jackett.Server.Controllers
             updater = u;
             logCache = lc;
             logger = l;
-
-            /**/
-            _cacheServiceFactory = cacheServiceFactory;
             _cacheManager = cacheManager;
-            /**/
-
         }
 
         [HttpPost]
@@ -151,21 +141,7 @@ namespace Jackett.Server.Controllers
             serverConfig.CacheTtl = cacheTtl;
             serverConfig.CacheMaxResultsPerIndexer = cacheMaxResultsPerIndexer;
 
-            /**/
-            //var connectionString = config.connectionstring;
-            //var connectionString = "basetest.db";
-
-            // Создание нового типа кэша
-            //ICacheService newCacheService = _cacheServiceFactory.CreateCacheService(cacheType);
-
-            // Обновление CacheManager новым кэшем
             _cacheManager.ChangeCacheType(serverConfig.CacheType, serverConfig.ConnectionString);
-
-
-            //ICacheService cacheService = CacheServiceFactory.CreateCacheService(CacheType.MongoDb);
-            //CacheManager cacheManager = new CacheManager(cacheService);
-            /**/
-
 
             serverConfig.RuntimeSettings.BasePath = serverService.BasePath();
             configService.SaveConfig(serverConfig);

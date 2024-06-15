@@ -32,7 +32,7 @@ namespace Jackett.Common.Services
 
         public void Initialize()
         {
-            using (var connection = new SqliteConnection("Data Source ="+ _connectionString))
+            using (var connection = new SqliteConnection("Data Source =" + _connectionString))
             {
                 connection.Open();
                 var command = connection.CreateCommand();
@@ -74,7 +74,7 @@ namespace Jackett.Common.Services
                 command.Parameters.AddWithValue("$trackerType", indexer.Type);
                 command.ExecuteNonQuery();
             }
-            
+
         }
 
         public List<ReleaseInfo> Search(IIndexer indexer, TorznabQuery query)

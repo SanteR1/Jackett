@@ -34,8 +34,8 @@ namespace Jackett.Common.Services
             {
                 CurrentCacheService.CleanCache();
             }
-            
-            _cacheService = _factory.CreateCacheService(newCacheType,str);
+
+            _cacheService = _factory.CreateCacheService(newCacheType, str);
         }
 
         public void CacheResults(IIndexer indexer, TorznabQuery query, List<ReleaseInfo> releases)
