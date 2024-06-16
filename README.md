@@ -287,6 +287,7 @@ A third-party Golang SDK for Jackett is available from [webtor-io/go-jackett](ht
  * Carpathians
  * CarPT
  * Cathode-Ray.Tube (CRT)
+ * CD File
  * Central Torrent
  * CeskeForum
  * CGPeers [![(invite needed)][inviteneeded]](#)
@@ -615,6 +616,7 @@ A third-party Golang SDK for Jackett is available from [webtor-io/go-jackett](ht
  * UnlimitZ
  * upload.cx
  * UTOPIA
+ * ViSiON HD
  * WDT (Wrestling Desires Torrents / Ultimate Wrestling Torrents)
  * White Angel
  * WinterSakura
