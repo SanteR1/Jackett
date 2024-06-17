@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Jackett.Common.Models
 {
-    internal class TrackerCacheQuery
+    public class TrackerCacheQuery
     {
         public DateTime Created
         {

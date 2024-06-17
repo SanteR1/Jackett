@@ -115,7 +115,7 @@ namespace Jackett.Server.Controllers
                 configService.SaveConfig(serverConfig);
             }
 
-            var cacheEnabled = config.cache_enabled;
+            //var cacheEnabled = config.cache_enabled;
             var cacheType = config.cache_type;
             var cacheConString = config.cache_connection_string;
             var cacheTtl = config.cache_ttl;
@@ -135,7 +135,7 @@ namespace Jackett.Server.Controllers
             serverConfig.BasePathOverride = basePathOverride;
             serverConfig.BaseUrlOverride = baseUrlOverride;
 
-            serverConfig.CacheEnabled = cacheEnabled;
+            //serverConfig.CacheEnabled = cacheEnabled;
             serverConfig.ConnectionString = cacheConString;
             serverConfig.CacheType = cacheType;
             serverConfig.CacheTtl = cacheTtl;

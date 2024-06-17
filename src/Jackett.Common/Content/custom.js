@@ -131,7 +131,7 @@ function loadJackettSettings() {
         $("#jackett-cache-connection-string").val(data.cache_connection_string);
         $("#jackett-cache-ttl").val(data.cache_ttl);
         $("#jackett-cache-max-results-per-indexer").val(data.cache_max_results_per_indexer);
-        if (!data.cache_enabled) {
+        if (data.cache_type == -1) {
             $("#jackett-show-releases").attr("disabled", true);
         }
 
