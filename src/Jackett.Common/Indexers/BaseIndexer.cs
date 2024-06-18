@@ -371,7 +371,7 @@ namespace Jackett.Common.Indexers
 
                 results = FilterResults(queryCopy, results).ToList();
                 results = FixResults(queryCopy, results).ToList();
-                cacheService.CacheResults(this, queryCopy, results.ToList());
+                CacheManager.CacheResults(this, queryCopy, results.ToList());
                 errorCount = 0;
                 expireAt = DateTime.Now.Add(HealthyStatusValidity);
                 return new IndexerResult(this, results, sw.ElapsedMilliseconds, false);
