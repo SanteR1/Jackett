@@ -277,8 +277,10 @@ namespace Jackett.Common.Services
                                 Link = new Uri(reader.GetString(reader.GetOrdinal("Link"))),
                                 Details = new Uri(reader.GetString(reader.GetOrdinal("Details"))),
                                 PublishDate = reader.GetDateTime(reader.GetOrdinal("PublishDate")),
-                                Category = new List<int>( reader.GetString(reader.GetOrdinal("Category"))),
-                                //TODO The input string '2000,100030' was not in a correct format.
+                                Category = reader.GetString(reader.GetOrdinal("Category"))
+                                                 .Split(',')
+                                                 .Select(int.Parse)
+                                                 .ToList(),
                                 Size =
                                     reader.IsDBNull(reader.GetOrdinal("Size"))
                                         ? (long?)null

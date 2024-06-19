@@ -43,7 +43,7 @@ namespace Jackett.Common.Indexers
         public virtual string[] Tags { get; protected set; }
 
         // https://github.com/Jackett/Jackett/issues/3292#issuecomment-838586679
-        private TimeSpan HealthyStatusValidity => cacheService.CacheTTL + cacheService.CacheTTL;
+        private TimeSpan HealthyStatusValidity => CacheManager.CurrentCacheService.CacheTTL + CacheManager.CurrentCacheService.CacheTTL;
         private static readonly TimeSpan ErrorStatusValidity = TimeSpan.FromMinutes(10);
         private static readonly TimeSpan MaxStatusValidity = TimeSpan.FromDays(1);
 
