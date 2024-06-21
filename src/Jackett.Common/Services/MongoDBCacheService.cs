@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using AngleSharp.Dom;
 using Jackett.Common.Indexers;
 using Jackett.Common.Models;
 using Jackett.Common.Models.Config;
@@ -69,46 +70,46 @@ namespace Jackett.Common.Services
                     foreach (var release in releases)
                     {
                         var document = new BsonDocument
-                    {
-                        { "TrackerCacheQueryId", trackerCacheQueryId },
-                        { "Title", release.Title },
-                        { "Guid", release.Guid?.ToString() },
-                        { "Link", release.Link?.ToString() },
-                        { "Details", release.Details?.ToString() },
-                        { "PublishDate", release.PublishDate },
-                        { "Category", new BsonArray(release.Category) },
-                        { "Size", release.Size },
-                        { "Files", (BsonValue)release.Files ?? BsonNull.Value },
-                        { "Grabs", (BsonValue)release.Grabs ?? BsonNull.Value },
-                        { "Description", release.Description },
-                        { "RageID", (BsonValue)release.RageID ?? BsonNull.Value },
-                        { "TVDBId", (BsonValue)release.TVDBId ?? BsonNull.Value },
-                        { "Imdb", (BsonValue)release.Imdb ?? BsonNull.Value },
-                        { "TMDb", (BsonValue)release.TMDb ?? BsonNull.Value },
-                        { "TVMazeId", (BsonValue)release.TVMazeId ?? BsonNull.Value },
-                        { "TraktId", (BsonValue)release.TraktId ?? BsonNull.Value },
-                        { "DoubanId", (BsonValue)release.DoubanId ?? BsonNull.Value },
-                        { "Genres", new BsonArray(release.Genres ?? new List<string>()) },
-                        { "Languages", new BsonArray(release.Languages ?? new List<string>()) },
-                        { "Subs", new BsonArray(release.Subs ?? new List<string>()) },
-                        { "Year", (BsonValue)release.Year ?? BsonNull.Value },
-                        { "Author", (BsonValue)release.Author ?? BsonNull.Value },
-                        { "BookTitle", (BsonValue)release.BookTitle ?? BsonNull.Value },
-                        { "Publisher", (BsonValue)release.Publisher ?? BsonNull.Value },
-                        { "Artist", (BsonValue)release.Artist ?? BsonNull.Value },
-                        { "Album", (BsonValue)release.Album ?? BsonNull.Value },
-                        { "Label", (BsonValue)release.Label ?? BsonNull.Value },
-                        { "Track", (BsonValue)release.Track ?? BsonNull.Value },
-                        { "Seeders", (BsonValue)release.Seeders ?? BsonNull.Value },
-                        { "Peers", (BsonValue)release.Peers ?? BsonNull.Value },
-                        { "Poster", (BsonValue)release.Poster?.ToString() ?? BsonNull.Value },
-                        { "InfoHash", (BsonValue)release.InfoHash ?? BsonNull.Value },
-                        { "MagnetUri", (BsonValue) release.MagnetUri ?.ToString() ?? BsonNull.Value },
-                        { "MinimumRatio", (BsonValue)release.MinimumRatio ?? BsonNull.Value },
-                        { "MinimumSeedTime", (BsonValue) release.MinimumSeedTime ?? BsonNull.Value },
-                        { "DownloadVolumeFactor", (BsonValue) release.DownloadVolumeFactor ?? BsonNull.Value },
-                        { "UploadVolumeFactor", (BsonValue) release.UploadVolumeFactor ?? BsonNull.Value }
-                    };
+                        {
+                            { "TrackerCacheQueryId", trackerCacheQueryId },
+                            { "Title", release.Title },
+                            { "Guid", release.Guid?.ToString() },
+                            { "Link", release.Link?.ToString() },
+                            { "Details", release.Details?.ToString() },
+                            { "PublishDate", release.PublishDate },
+                            { "Category", new BsonArray(release.Category) },
+                            { "Size", release.Size },
+                            { "Files", (BsonValue)release.Files ?? BsonNull.Value },
+                            { "Grabs", (BsonValue)release.Grabs ?? BsonNull.Value },
+                            { "Description", release.Description },
+                            { "RageID", (BsonValue)release.RageID ?? BsonNull.Value },
+                            { "TVDBId", (BsonValue)release.TVDBId ?? BsonNull.Value },
+                            { "Imdb", (BsonValue)release.Imdb ?? BsonNull.Value },
+                            { "TMDb", (BsonValue)release.TMDb ?? BsonNull.Value },
+                            { "TVMazeId", (BsonValue)release.TVMazeId ?? BsonNull.Value },
+                            { "TraktId", (BsonValue)release.TraktId ?? BsonNull.Value },
+                            { "DoubanId", (BsonValue)release.DoubanId ?? BsonNull.Value },
+                            { "Genres", new BsonArray(release.Genres ?? new List<string>()) },
+                            { "Languages", new BsonArray(release.Languages ?? new List<string>()) },
+                            { "Subs", new BsonArray(release.Subs ?? new List<string>()) },
+                            { "Year", (BsonValue)release.Year ?? BsonNull.Value },
+                            { "Author", (BsonValue)release.Author ?? BsonNull.Value },
+                            { "BookTitle", (BsonValue)release.BookTitle ?? BsonNull.Value },
+                            { "Publisher", (BsonValue)release.Publisher ?? BsonNull.Value },
+                            { "Artist", (BsonValue)release.Artist ?? BsonNull.Value },
+                            { "Album", (BsonValue)release.Album ?? BsonNull.Value },
+                            { "Label", (BsonValue)release.Label ?? BsonNull.Value },
+                            { "Track", (BsonValue)release.Track ?? BsonNull.Value },
+                            { "Seeders", (BsonValue)release.Seeders ?? BsonNull.Value },
+                            { "Peers", (BsonValue)release.Peers ?? BsonNull.Value },
+                            { "Poster", (BsonValue)release.Poster?.ToString() ?? BsonNull.Value },
+                            { "InfoHash", (BsonValue)release.InfoHash ?? BsonNull.Value },
+                            { "MagnetUri", (BsonValue)release.MagnetUri?.ToString() ?? BsonNull.Value },
+                            { "MinimumRatio", (BsonValue)release.MinimumRatio ?? BsonNull.Value },
+                            { "MinimumSeedTime", (BsonValue)release.MinimumSeedTime ?? BsonNull.Value },
+                            { "DownloadVolumeFactor", (BsonValue)release.DownloadVolumeFactor ?? BsonNull.Value },
+                            { "UploadVolumeFactor", (BsonValue)release.UploadVolumeFactor ?? BsonNull.Value }
+                        };
                         releaseInfosCollection.InsertOne(document);
                     }
                 }
@@ -130,9 +131,7 @@ namespace Jackett.Common.Services
             {
                 var document = new BsonDocument
                 {
-                    { "TrackerId", indexer.Id },
-                    { "TrackerName", indexer.Name },
-                    { "TrackerType", indexer.Type }
+                    { "TrackerId", indexer.Id }, { "TrackerName", indexer.Name }, { "TrackerType", indexer.Type }
                 };
                 trackerCachesCollection.InsertOne(document);
                 return document["_id"].AsObjectId;
@@ -146,9 +145,7 @@ namespace Jackett.Common.Services
             var trackerCacheQueriesCollection = _database.GetCollection<BsonDocument>("TrackerCacheQueries");
             var document = new BsonDocument
             {
-                { "TrackerCacheId", trackerCacheId },
-                { "QueryHash", GetQueryHash(query) },
-                { "Created", DateTime.Now }
+                { "TrackerCacheId", trackerCacheId }, { "QueryHash", GetQueryHash(query) }, { "Created", DateTime.Now }
             };
             trackerCacheQueriesCollection.InsertOne(document);
             return document["_id"].AsObjectId;
@@ -162,172 +159,149 @@ namespace Jackett.Common.Services
             PruneCacheByTtl();
 
             var queryHash = GetQueryHash(query);
-            var trackerCachesCollection = _database.GetCollection<BsonDocument>("TrackerCaches");
-            var trackerCacheQueriesCollection = _database.GetCollection<BsonDocument>("TrackerCacheQueries");
-            var releaseInfosCollection = _database.GetCollection<BsonDocument>("ReleaseInfos");
+            var releaseInfos = _database.GetCollection<BsonDocument>("ReleaseInfos");
 
-            // Step 1: Find the TrackerCache document using TrackerId
-            var trackerCacheFilter = Builders<BsonDocument>.Filter.Eq("TrackerId", indexer.Id);
-            var trackerCacheDoc = trackerCachesCollection.Find(trackerCacheFilter).FirstOrDefault();
+            var results = releaseInfos.Aggregate()
+                                      .Lookup("TrackerCacheQueries", "TrackerCacheQueryId", "_id", "TrackerCacheQuery")
+                                      .Unwind("TrackerCacheQuery")
+                                      .Lookup("TrackerCaches", "TrackerCacheQuery.TrackerCacheId", "_id", "TrackerCache")
+                                      .Unwind("TrackerCache").Match(
+                                          Builders<BsonDocument>.Filter.And(
+                                              Builders<BsonDocument>.Filter.Eq("TrackerCache.TrackerId", indexer.Id),
+                                              Builders<BsonDocument>.Filter.Eq("TrackerCacheQuery.QueryHash", queryHash)))
+                                      .ToList();
 
-            if (trackerCacheDoc == null)
+            if (results.Count > 0)
             {
-                _logger.Debug($"CACHE Search Miss / Indexer: {indexer.Id}");
-                return null;
+                _logger.Debug($"CACHE Search Hit / Indexer: {indexer.Id} / Found: {results.Count} releases");
+                return results.Select(ConvertBsonToReleaseInfo).ToList();
             }
 
-            var trackerCacheId = trackerCacheDoc["_id"].AsObjectId;
+            return null;
+        }
 
-            // Step 2: Find the TrackerCacheQuery document using TrackerCacheId and QueryHash
-            var trackerCacheQueryFilter = Builders<BsonDocument>.Filter.And(
-                Builders<BsonDocument>.Filter.Eq("TrackerCacheId", trackerCacheId),
-                Builders<BsonDocument>.Filter.Eq("QueryHash", queryHash)
-            );
-            var trackerCacheQueryDoc = trackerCacheQueriesCollection.Find(trackerCacheQueryFilter).FirstOrDefault();
-
-            if (trackerCacheQueryDoc == null)
-            {
-                _logger.Debug($"CACHE Search Miss / Indexer: {indexer.Id}");
-                return null;
-            }
-
-            var trackerCacheQueryId = trackerCacheQueryDoc["_id"].AsObjectId;
-
-            // Step 3: Find the ReleaseInfo documents using TrackerCacheQueryId
-            var releaseInfoFilter = Builders<BsonDocument>.Filter.Eq("TrackerCacheQueryId", trackerCacheQueryId);
-            var releaseInfoDocs = releaseInfosCollection.Find(releaseInfoFilter).ToList();
-
-
-            //TODO ниже ошибка
-            ошибка
-            var results = releaseInfoDocs.Select(doc => new ReleaseInfo
+        private ReleaseInfo ConvertBsonToReleaseInfo(BsonDocument doc)
+        {
+            return new ReleaseInfo
             {
                 Title = doc["Title"].AsString,
                 Guid = new Uri(doc["Guid"].AsString),
                 Link = new Uri(doc["Link"].AsString),
                 Details = new Uri(doc["Details"].AsString),
                 PublishDate = doc["PublishDate"].ToUniversalTime(),
-                Category = doc["Category"].AsBsonArray.Select(v => v.AsInt32).ToList(),
-                Size = doc["Size"].AsNullableInt64,
-                Files = doc["Files"].AsNullableInt64,
-                Grabs = doc["Grabs"].AsNullableInt64,
+                Category = doc["Category"].AsBsonArray.Select(c => c.AsInt32).ToList(),
+                Size = doc["Size"].AsInt64,
+                Files = doc["Files"].IsInt64 ? doc["Files"].AsInt64 : (long?)null,
+                Grabs = doc["Grabs"].IsInt64 ? doc["Grabs"].AsInt64 : (long?)null,
                 Description = doc["Description"].AsString,
-                RageID = doc["RageID"].AsNullableInt64,
-                TVDBId = doc["TVDBId"].AsNullableInt64,
-                Imdb = doc["Imdb"].AsNullableInt64,
-                TMDb = doc["TMDb"].AsNullableInt64,
-                TVMazeId = doc["TVMazeId"].AsNullableInt64,
-                TraktId = doc["TraktId"].AsNullableInt64,
-                DoubanId = doc["DoubanId"].AsNullableInt64,
-                Genres = doc["Genres"].AsBsonArray.Select(v => v.AsString).ToList(),
-                Languages = doc["Languages"].AsBsonArray.Select(v => v.AsString).ToList(),
-                Subs = doc["Subs"].AsBsonArray.Select(v => v.AsString).ToList(),
-                Year = doc["Year"].AsNullableInt64,
-                Author = doc["Author"].AsString,
-                BookTitle = doc["BookTitle"].AsString,
-                Publisher = doc["Publisher"].AsString,
-                Artist = doc["Artist"].AsString,
-                Album = doc["Album"].AsString,
-                Label = doc["Label"].AsString,
-                Track = doc["Track"].AsString,
-                Seeders = doc["Seeders"].AsNullableInt64,
-                Peers = doc["Peers"].AsNullableInt64,
-                Poster = new Uri(doc["Poster"].AsString),
-                InfoHash = doc["InfoHash"].AsString,
-                MagnetUri = new Uri(doc["MagnetUri"].AsString),
-                MinimumRatio = doc["MinimumRatio"].AsNullableDouble,
-                MinimumSeedTime = doc["MinimumSeedTime"].AsNullableInt64,
-                DownloadVolumeFactor = doc["DownloadVolumeFactor"].AsNullableDouble,
-                UploadVolumeFactor = doc["UploadVolumeFactor"].AsNullableDouble
-            }).ToList();
-
-            if (results.Count > 0)
-            {
-                _logger.Debug($"CACHE Search Hit / Indexer: {indexer.Id} / Found: {results.Count} releases");
-                return results;
-            }
-
-            _logger.Debug($"CACHE Search Miss / Indexer: {indexer.Id}");
-            return null;
+                RageID = doc["RageID"].IsInt64 ? doc["RageID"].AsInt64 : (long?)null,
+                TVDBId = doc["TVDBId"].IsInt64 ? doc["TVDBId"].AsInt64 : (long?)null,
+                Imdb = doc["Imdb"].IsInt64 ? doc["Imdb"].AsInt64 : (long?)null,
+                TMDb = doc["TMDb"].IsInt64 ? doc["TMDb"].AsInt64 : (long?)null,
+                TVMazeId = doc["TVMazeId"].IsInt64 ? doc["TVMazeId"].AsInt64 : (long?)null,
+                TraktId = doc["TraktId"].IsInt64 ? doc["TraktId"].AsInt64 : (long?)null,
+                DoubanId = doc["DoubanId"].IsInt64 ? doc["DoubanId"].AsInt64 : (long?)null,
+                Genres = doc["Genres"].AsBsonArray.Select(g => g.AsString).ToList(),
+                Languages = doc["Languages"].AsBsonArray.Select(l => l.AsString).ToList(),
+                Subs = doc["Subs"].AsBsonArray.Select(s => s.AsString).ToList(),
+                Year = doc["Year"].IsInt32 ? doc["Year"].AsInt32 : (int?)null,
+                Author = doc["Author"].IsBsonNull ? null : doc["Author"].AsString,
+                BookTitle = doc["BookTitle"].IsBsonNull ? null : doc["BookTitle"].AsString,
+                Publisher = doc["Publisher"].IsBsonNull ? null : doc["Publisher"].AsString,
+                Artist = doc["Artist"].IsBsonNull ? null : doc["Artist"].AsString,
+                Album = doc["Album"].IsBsonNull ? null : doc["Album"].AsString,
+                Label = doc["Label"].IsBsonNull ? null : doc["Label"].AsString,
+                Track = doc["Track"].IsBsonNull ? null : doc["Track"].AsString,
+                Seeders = doc["Seeders"].IsInt32 ? doc["Seeders"].AsInt32 : (int?)null,
+                Peers = doc["Peers"].IsInt32 ? doc["Peers"].AsInt32 : (int?)null,
+                Poster = doc["Poster"].IsBsonNull ? null : new Uri(doc["Poster"].AsString),
+                InfoHash = doc["InfoHash"].IsBsonNull ? null : doc["InfoHash"].AsString,
+                MagnetUri = doc["MagnetUri"].IsBsonNull ? null : new Uri(doc["MagnetUri"].AsString),
+                MinimumRatio = doc["MinimumRatio"].IsDouble ? doc["MinimumRatio"].AsDouble : (double?)null,
+                MinimumSeedTime = doc["MinimumSeedTime"].IsInt64 ? doc["MinimumSeedTime"].AsInt64 : (long?)null,
+                DownloadVolumeFactor =
+                    doc["DownloadVolumeFactor"].IsDouble ? doc["DownloadVolumeFactor"].AsDouble : (double?)null,
+                UploadVolumeFactor = doc["UploadVolumeFactor"].IsDouble
+                    ? doc["UploadVolumeFactor"].AsDouble
+                    : (double?)null
+            };
         }
-
 
         public IReadOnlyList<TrackerCacheResult> GetCachedResults()
         {
-            lock (_dbLock)
+            if (_serverConfig.CacheType == CacheType.Disabled)
+                return Array.Empty<TrackerCacheResult>();
+
+            PruneCacheByTtl(); // remove expired results
+
+            var releaseInfos = _database.GetCollection<BsonDocument>("ReleaseInfos");
+
+            var results = releaseInfos.Aggregate()
+                                      .Lookup("TrackerCacheQueries", "TrackerCacheQueryId", "_id", "TrackerCacheQuery")
+                                      .Unwind("TrackerCacheQuery")
+                                      .Lookup("TrackerCaches", "TrackerCacheQuery.TrackerCacheId", "_id", "TrackerCache")
+                                      .Unwind("TrackerCache").SortByDescending(doc => doc["PublishDate"]).Limit(3000)
+                                      .ToList();
+
+            return results.Select(doc =>
             {
-                if (_serverConfig.CacheType == CacheType.Disabled)
-                    return Array.Empty<TrackerCacheResult>();
-                var releaseInfosCollection = _database.GetCollection<BsonDocument>("ReleaseInfos");
-                var trackerCacheQueriesCollection = _database.GetCollection<BsonDocument>("TrackerCacheQueries");
-                var releaseInfos = releaseInfosCollection.Find(FilterDefinition<BsonDocument>.Empty).ToList();
-                var results = new List<TrackerCacheResult>();
-
-                foreach (var doc in releaseInfos)
-                {
-                    var trackerCacheQueryId = doc["TrackerCacheQueryId"].AsObjectId;
-                    var queryFilter = Builders<BsonDocument>.Filter.Eq("_id", trackerCacheQueryId);
-                    var queryDoc = trackerCacheQueriesCollection.Find(queryFilter).FirstOrDefault();
-                    if (queryDoc != null)
+                var releaseInfo = ConvertBsonToReleaseInfo(doc);
+                return new TrackerCacheResult(
+                    new ReleaseInfo()
                     {
-                        results.Add(
-                            new TrackerCacheResult(
-                                new ReleaseInfo
-                                {
-                                    Title = doc["Title"].AsString,
-                                    Guid = new Uri(doc["Guid"].AsString),
-                                    Link = new Uri(doc["Link"].AsString),
-                                    Details = new Uri(doc["Details"].AsString),
-                                    PublishDate = doc["PublishDate"].ToUniversalTime(),
-                                    Category = doc["Category"].AsBsonArray.Select(v => v.AsInt32).ToList(),
-                                    Size = doc["Size"].AsNullableInt64,
-                                    Files = doc["Files"].AsNullableInt64,
-                                    Grabs = doc["Grabs"].AsNullableInt64,
-                                    Description = doc["Description"].AsString,
-                                    RageID = doc["RageID"].AsNullableInt64,
-                                    TVDBId = doc["TVDBId"].AsNullableInt64,
-                                    Imdb = doc["Imdb"].AsNullableInt64,
-                                    TMDb = doc["TMDb"].AsNullableInt64,
-                                    TVMazeId = doc["TVMazeId"].AsNullableInt64,
-                                    TraktId = doc["TraktId"].AsNullableInt64,
-                                    DoubanId = doc["DoubanId"].AsNullableInt64,
-                                    Genres = doc["Genres"].AsBsonArray.Select(v => v.AsString).ToList(),
-                                    Languages = doc["Languages"].AsBsonArray.Select(v => v.AsString).ToList(),
-                                    Subs = doc["Subs"].AsBsonArray.Select(v => v.AsString).ToList(),
-                                    Year = doc["Year"].AsNullableInt64,
-                                    Author = doc["Author"].AsString,
-                                    BookTitle = doc["BookTitle"].AsString,
-                                    Publisher = doc["Publisher"].AsString,
-                                    Artist = doc["Artist"].AsString,
-                                    Album = doc["Album"].AsString,
-                                    Label = doc["Label"].AsString,
-                                    Track = doc["Track"].AsString,
-                                    Seeders = doc["Seeders"].AsNullableInt64,
-                                    Peers = doc["Peers"].AsNullableInt64,
-                                    Poster = new Uri(doc["Poster"].AsString),
-                                    InfoHash = doc["InfoHash"].AsString,
-                                    MagnetUri = new Uri(doc["MagnetUri"].AsString),
-                                    MinimumRatio = doc["MinimumRatio"].AsNullableDouble,
-                                    MinimumSeedTime = doc["MinimumSeedTime"].AsNullableInt64,
-                                    DownloadVolumeFactor = doc["DownloadVolumeFactor"].AsNullableDouble,
-                                    UploadVolumeFactor = doc["UploadVolumeFactor"].AsNullableDouble
-                                })
-                                {
-                                    TrackerId = queryDoc["TrackerId"].AsString,
-                                    Tracker = queryDoc["Tracker"].AsString,
-                                    TrackerType = queryDoc["TrackerType"].AsString
-                                    //Id = queryDoc["_id"].AsObjectId,
-                                    //TrackerCacheId = queryDoc["TrackerCacheId"].AsObjectId,
-                                    //QueryHash = queryDoc["QueryHash"].AsString,
-                                    //Created = queryDoc["Created"].ToUniversalTime()
 
-                                });
-                    }
-                }
-
-                return results;
-            }
+                        // Initialize the properties of the base class (ReleaseInfo) manually
+                        Title = releaseInfo.Title,
+                        Guid = releaseInfo.Guid,
+                        Link = releaseInfo.Link,
+                        Details = releaseInfo.Details,
+                        PublishDate = releaseInfo.PublishDate,
+                        Category = releaseInfo.Category,
+                        Size = releaseInfo.Size,
+                        Files = releaseInfo.Files,
+                        Grabs = releaseInfo.Grabs,
+                        Description = releaseInfo.Description,
+                        RageID = releaseInfo.RageID,
+                        TVDBId = releaseInfo.TVDBId,
+                        Imdb = releaseInfo.Imdb,
+                        TMDb = releaseInfo.TMDb,
+                        TVMazeId = releaseInfo.TVMazeId,
+                        TraktId = releaseInfo.TraktId,
+                        DoubanId = releaseInfo.DoubanId,
+                        Genres = releaseInfo.Genres,
+                        Languages = releaseInfo.Languages,
+                        Subs = releaseInfo.Subs,
+                        Year = releaseInfo.Year,
+                        Author = releaseInfo.Author,
+                        BookTitle = releaseInfo.BookTitle,
+                        Publisher = releaseInfo.Publisher,
+                        Artist = releaseInfo.Artist,
+                        Album = releaseInfo.Album,
+                        Label = releaseInfo.Label,
+                        Track = releaseInfo.Track,
+                        Seeders = releaseInfo.Seeders,
+                        Peers = releaseInfo.Peers,
+                        Poster = releaseInfo.Poster,
+                        InfoHash = releaseInfo.InfoHash,
+                        MagnetUri = releaseInfo.MagnetUri,
+                        MinimumRatio = releaseInfo.MinimumRatio,
+                        MinimumSeedTime = releaseInfo.MinimumSeedTime,
+                        DownloadVolumeFactor = releaseInfo.DownloadVolumeFactor,
+                        UploadVolumeFactor = releaseInfo.UploadVolumeFactor,
+                        Origin = releaseInfo.Origin
+                    })
+                {
+                    Tracker = doc["TrackerCache"]["TrackerName"].AsString,
+                    TrackerId = doc["TrackerCache"]["TrackerId"].AsString,
+                    TrackerType = doc["TrackerCache"]["TrackerType"].AsString,
+                };
+            }).ToList();
         }
+
+
+
+
+
 
         public void CleanIndexerCache(IIndexer indexer)
         {
