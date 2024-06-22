@@ -188,9 +188,9 @@ namespace Jackett.Common.Services
                 Guid = new Uri(doc["Guid"].AsString),
                 Link = new Uri(doc["Link"].AsString),
                 Details = new Uri(doc["Details"].AsString),
-                PublishDate = doc["PublishDate"].ToUniversalTime(),
+                PublishDate = doc["PublishDate"].ToLocalTime(),
                 Category = doc["Category"].AsBsonArray.Select(c => c.AsInt32).ToList(),
-                Size = doc["Size"].AsInt64,
+                Size = doc["Size"].IsInt64 ? doc["Size"].AsInt64 : (long?)null,
                 Files = doc["Files"].IsInt64 ? doc["Files"].AsInt64 : (long?)null,
                 Grabs = doc["Grabs"].IsInt64 ? doc["Grabs"].AsInt64 : (long?)null,
                 Description = doc["Description"].AsString,
@@ -204,7 +204,7 @@ namespace Jackett.Common.Services
                 Genres = doc["Genres"].AsBsonArray.Select(g => g.AsString).ToList(),
                 Languages = doc["Languages"].AsBsonArray.Select(l => l.AsString).ToList(),
                 Subs = doc["Subs"].AsBsonArray.Select(s => s.AsString).ToList(),
-                Year = doc["Year"].IsInt32 ? doc["Year"].AsInt32 : (int?)null,
+                Year = doc["Year"].IsInt64 ? doc["Year"].AsInt64 : (long?)null,
                 Author = doc["Author"].IsBsonNull ? null : doc["Author"].AsString,
                 BookTitle = doc["BookTitle"].IsBsonNull ? null : doc["BookTitle"].AsString,
                 Publisher = doc["Publisher"].IsBsonNull ? null : doc["Publisher"].AsString,
@@ -212,8 +212,8 @@ namespace Jackett.Common.Services
                 Album = doc["Album"].IsBsonNull ? null : doc["Album"].AsString,
                 Label = doc["Label"].IsBsonNull ? null : doc["Label"].AsString,
                 Track = doc["Track"].IsBsonNull ? null : doc["Track"].AsString,
-                Seeders = doc["Seeders"].IsInt32 ? doc["Seeders"].AsInt32 : (int?)null,
-                Peers = doc["Peers"].IsInt32 ? doc["Peers"].AsInt32 : (int?)null,
+                Seeders = doc["Seeders"].IsInt64 ? doc["Seeders"].AsInt64 : (long?)null,
+                Peers = doc["Peers"].IsInt64 ? doc["Peers"].AsInt64 : (long?)null,
                 Poster = doc["Poster"].IsBsonNull ? null : new Uri(doc["Poster"].AsString),
                 InfoHash = doc["InfoHash"].IsBsonNull ? null : doc["InfoHash"].AsString,
                 MagnetUri = doc["MagnetUri"].IsBsonNull ? null : new Uri(doc["MagnetUri"].AsString),
@@ -246,10 +246,10 @@ namespace Jackett.Common.Services
             return results.Select(doc =>
             {
                 var releaseInfo = ConvertBsonToReleaseInfo(doc);
+
                 return new TrackerCacheResult(
                     new ReleaseInfo()
                     {
-
                         // Initialize the properties of the base class (ReleaseInfo) manually
                         Title = releaseInfo.Title,
                         Guid = releaseInfo.Guid,
@@ -294,6 +294,7 @@ namespace Jackett.Common.Services
                     Tracker = doc["TrackerCache"]["TrackerName"].AsString,
                     TrackerId = doc["TrackerCache"]["TrackerId"].AsString,
                     TrackerType = doc["TrackerCache"]["TrackerType"].AsString,
+                    FirstSeen = doc["TrackerCacheQuery"]["Created"].ToLocalTime()
                 };
             }).ToList();
         }
