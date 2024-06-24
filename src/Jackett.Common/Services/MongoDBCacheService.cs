@@ -298,16 +298,58 @@ namespace Jackett.Common.Services
                 };
             }).ToList();
         }
-
-
-
-
-
-
+        
         public void CleanIndexerCache(IIndexer indexer)
         {
-            //var filter = Builders<CacheEntry>.Filter.Eq(e => e.IndexerId, indexer.Id);
-            //_cacheEntries.DeleteMany(filter);
+            if (indexer == null)
+            {
+                _logger.Debug("Indexer is null, skipping cache cleaning.");
+                return;
+            }
+
+            var trackerCachesCollection = _database.GetCollection<BsonDocument>("TrackerCaches");
+            var trackerCacheQueriesCollection = _database.GetCollection<BsonDocument>("TrackerCacheQueries");
+            var releaseInfosCollection = _database.GetCollection<BsonDocument>("ReleaseInfos");
+
+            // Step 1: Find all TrackerCaches documents associated with the given indexer
+            var trackerCachesFilter = Builders<BsonDocument>.Filter.Eq("TrackerId", indexer.Id);
+            var trackerCachesDocs = trackerCachesCollection.Find(trackerCachesFilter).ToList();
+
+            if (!trackerCachesDocs.Any())
+            {
+                _logger.Debug($"No TrackerCaches documents found for indexer {indexer.Id}, skipping cache cleaning.");
+                return;
+            }
+
+            // Step 2: Collect _id values of TrackerCaches documents
+            var trackerCachesIds = trackerCachesDocs.Select(doc => doc["_id"].AsObjectId).ToList();
+
+            // Step 3: Find and delete corresponding TrackerCacheQueries documents
+            var trackerCacheQueriesFilter = Builders<BsonDocument>.Filter.In("TrackerCacheId", trackerCachesIds);
+            var trackerCacheQueriesDocs = trackerCacheQueriesCollection.Find(trackerCacheQueriesFilter).ToList();
+
+            if (trackerCacheQueriesDocs.Any())
+            {
+                // Step 4: Collect _id values of TrackerCacheQueries documents
+                var trackerCacheQueryIds = trackerCacheQueriesDocs.Select(doc => doc["_id"].AsObjectId).ToList();
+
+                // Step 5: Find and delete corresponding ReleaseInfos documents
+                var releaseInfosFilter = Builders<BsonDocument>.Filter.In("TrackerCacheQueryId", trackerCacheQueryIds);
+                var deleteReleaseInfosResult = releaseInfosCollection.DeleteMany(releaseInfosFilter);
+                _logger.Debug($"Deleted {deleteReleaseInfosResult.DeletedCount} documents from ReleaseInfos for indexer {indexer.Id}");
+
+                // Delete TrackerCacheQueries documents
+                var deleteTrackerCacheQueriesResult = trackerCacheQueriesCollection.DeleteMany(trackerCacheQueriesFilter);
+                _logger.Debug($"Deleted {deleteTrackerCacheQueriesResult.DeletedCount} documents from TrackerCacheQueries for indexer {indexer.Id}");
+            }
+            else
+            {
+                _logger.Debug($"No TrackerCacheQueries documents found for TrackerCaches of indexer {indexer.Id}");
+            }
+
+            // Step 6: Delete TrackerCaches documents
+            var deleteTrackerCachesResult = trackerCachesCollection.DeleteMany(trackerCachesFilter);
+            _logger.Debug($"Deleted {deleteTrackerCachesResult.DeletedCount} documents from TrackerCaches for indexer {indexer.Id}");
         }
 
         public void CleanCache()
@@ -318,8 +360,6 @@ namespace Jackett.Common.Services
                 _database.DropCollection("TrackerCaches");
                 _database.DropCollection("TrackerCacheQueries");
             }
-
-            //_cacheEntries.DeleteMany(_ => true);
         }
 
         public TimeSpan CacheTTL => TimeSpan.FromSeconds(_serverConfig.CacheTtl);
@@ -343,10 +383,51 @@ namespace Jackett.Common.Services
 
         public void PruneCacheByTtl()
         {
-            var expirationDate = DateTime.Now.AddSeconds(-_serverConfig.CacheTtl);
-            var releaseInfosCollection = _database.GetCollection<BsonDocument>("ReleaseInfos");
-            var filter = Builders<BsonDocument>.Filter.Lt("Created", expirationDate);
-            releaseInfosCollection.DeleteMany(filter);
+            if (_serverConfig.CacheTtl <= 0)
+            {
+                _logger.Debug("Cache TTL is disabled or set to a non-positive value, skipping pruning.");
+                return;
+            }
+
+            lock (_dbLock)
+            {
+                var expirationDate = DateTime.Now.AddSeconds(-_serverConfig.CacheTtl);
+
+                var trackerCacheQueriesCollection = _database.GetCollection<BsonDocument>("TrackerCacheQueries");
+                var releaseInfosCollection = _database.GetCollection<BsonDocument>("ReleaseInfos");
+                var trackerCachesCollection = _database.GetCollection<BsonDocument>("TrackerCaches");
+
+                // Step 1: Find expired documents in the TrackerCacheQueries collection
+                var trackerCacheQueryFilter = Builders<BsonDocument>.Filter.Lt("Created", expirationDate);
+                var expiredTrackerCacheQueryDocs = trackerCacheQueriesCollection.Find(trackerCacheQueryFilter).ToList();
+
+                if (!expiredTrackerCacheQueryDocs.Any())
+                {
+                    _logger.Debug("No expired documents found in TrackerCacheQueries for pruning.");
+                    return;
+                }
+
+                // Step 2: Collect _id values of expired TrackerCacheQuery documents
+                var expiredTrackerCacheQueryIds = expiredTrackerCacheQueryDocs.Select(doc => doc["_id"].AsObjectId).ToList();
+
+                // Step 3: Delete corresponding entries in the ReleaseInfos collection
+                var releaseInfoFilter = Builders<BsonDocument>.Filter.In("TrackerCacheQueryId", expiredTrackerCacheQueryIds);
+                var deleteResult1 = releaseInfosCollection.DeleteMany(releaseInfoFilter);
+                _logger.Debug($"Pruned {deleteResult1.DeletedCount} documents from ReleaseInfos");
+
+                // Step 4: Collect TrackerCacheId values from the expired TrackerCacheQuery documents
+                var expiredTrackerCacheIds =
+                    expiredTrackerCacheQueryDocs.Select(doc => doc["TrackerCacheId"].AsObjectId).ToList();
+
+                // Step 5: Delete corresponding entries in the TrackerCaches collection
+                var trackerCachesFilter = Builders<BsonDocument>.Filter.In("_id", expiredTrackerCacheIds);
+                var deleteResult2 = trackerCachesCollection.DeleteMany(trackerCachesFilter);
+                _logger.Debug($"Pruned {deleteResult2.DeletedCount} documents from TrackerCaches");
+
+                // Step 6: Delete expired documents from the TrackerCacheQueries collection
+                var deleteResult3 = trackerCacheQueriesCollection.DeleteMany(trackerCacheQueryFilter);
+                _logger.Debug($"Pruned {deleteResult3.DeletedCount} documents from TrackerCacheQueries");
+            }
         }
     }
 }
