@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using Amazon.Runtime.Internal.Util;
 using AngleSharp.Dom;
 using Jackett.Common.Indexers;
 using Jackett.Common.Models;
@@ -113,10 +112,10 @@ namespace Jackett.Common.Services
                         };
                         releaseInfosCollection.InsertOne(document);
                     }
-                    _logger.Debug($"CACHE CacheResults / Indexer: {trackerCache.TrackerId} / Added: {releases.Count} releases");
+                    _logger.Debug($"CACHE CacheResults / Indexer: {indexer.Id} / Added: {releases.Count} releases");
 
 
-                    PruneCacheByMaxResultsPerIndexer(trackerCache); // remove old results if we exceed the maximum limit
+                    PruneCacheByMaxResultsPerIndexer(indexer.Id); // remove old results if we exceed the maximum limit
                 }
                 catch (Exception e)
                 {
@@ -244,7 +243,7 @@ namespace Jackett.Common.Services
                                       .Lookup("TrackerCacheQueries", "TrackerCacheQueryId", "_id", "TrackerCacheQuery")
                                       .Unwind("TrackerCacheQuery")
                                       .Lookup("TrackerCaches", "TrackerCacheQuery.TrackerCacheId", "_id", "TrackerCache")
-                                      .Unwind("TrackerCache").SortByDescending(doc => doc["PublishDate"]).Limit(3000)
+                                      .Unwind("TrackerCache").SortByDescending(doc => doc["PublishDate"]).Limit(_serverConfig.CacheMaxResultsPerIndexer)
                                       .ToList();
 
             return results.Select(doc =>
@@ -302,7 +301,7 @@ namespace Jackett.Common.Services
                 };
             }).ToList();
         }
-        
+
         public void CleanIndexerCache(IIndexer indexer)
         {
             if (indexer == null)
@@ -434,53 +433,73 @@ namespace Jackett.Common.Services
             }
         }
 
-        public void PruneCacheByMaxResultsPerIndexer(ObjectId trackerCache)
+        public void PruneCacheByMaxResultsPerIndexer(string trackerId)
         {
+            var trackerCachesCollection = _database.GetCollection<BsonDocument>("TrackerCaches");
             var trackerCacheQueriesCollection = _database.GetCollection<BsonDocument>("TrackerCacheQueries");
             var releaseInfosCollection = _database.GetCollection<BsonDocument>("ReleaseInfos");
 
-            // Step 1: Find all TrackerCacheQueries documents for the given TrackerId
-            var filter = Builders<BsonDocument>.Filter.Eq("TrackerId", trackerCache.TrackerId);
-            var queries = trackerCacheQueriesCollection.Find(filter).ToList();
+            // Step 1: Find all TrackerCaches documents for the given TrackerId
+            var trackerCachesFilter = Builders<BsonDocument>.Filter.Eq("TrackerId", trackerId);
+            var trackerCaches = trackerCachesCollection.Find(trackerCachesFilter).ToList();
 
-            if (!queries.Any())
+            if (!trackerCaches.Any())
             {
-                _logger.Debug($"No TrackerCacheQueries documents found for tracker {trackerCache.TrackerId}");
+                _logger.Debug($"No TrackerCaches documents found for tracker {trackerId}");
                 return;
             }
 
-            // Step 2: Order queries by Created date descending and calculate the total results count
-            var orderedQueries = queries.OrderByDescending(q => q["Created"].ToUniversalTime()).ToList();
-            var resultsPerQuery = orderedQueries.Select(q => new { Id = q["_id"].AsObjectId, ResultsCount = q["Results"].AsBsonArray.Count }).ToList();
+            // Step 2: Find all TrackerCacheQueries documents for the given TrackerCacheIds
+            var trackerCacheIds = trackerCaches.Select(tc => tc["_id"].AsObjectId).ToList();
+            var trackerCacheQueriesFilter = Builders<BsonDocument>.Filter.In("TrackerCacheId", trackerCacheIds);
+            var trackerCacheQueries = trackerCacheQueriesCollection.Find(trackerCacheQueriesFilter).ToList();
 
-            int totalResultsCount = resultsPerQuery.Sum(q => q.ResultsCount);
+            if (!trackerCacheQueries.Any())
+            {
+                _logger.Debug($"No TrackerCacheQueries documents found for TrackerId {trackerId}");
+                return;
+            }
 
-            // Step 3: Prune old queries if total results exceed the limit
+            // Step 3: Find all ReleaseInfos documents for the given TrackerCacheQueryIds
+            var trackerCacheQueryIds = trackerCacheQueries.Select(tcq => tcq["_id"].AsObjectId).ToList();
+            var releaseInfosFilter = Builders<BsonDocument>.Filter.In("TrackerCacheQueryId", trackerCacheQueryIds);
+            var releaseInfos = releaseInfosCollection.Find(releaseInfosFilter).ToList();
+
+            int totalResultsCount = releaseInfos.Count;
+
+            if (totalResultsCount <= _serverConfig.CacheMaxResultsPerIndexer)
+            {
+                _logger.Debug($"Total results count {totalResultsCount} is within the limit {_serverConfig.CacheMaxResultsPerIndexer}");
+                return;
+            }
+
+            // Step 4: Prune old ReleaseInfos if total results exceed the limit
             int prunedCounter = 0;
+
             while (totalResultsCount > _serverConfig.CacheMaxResultsPerIndexer)
             {
-                var oldestQuery = resultsPerQuery.Last();
-                totalResultsCount -= oldestQuery.ResultsCount;
+                var latestReleaseInfo = releaseInfos.Last();
+                totalResultsCount--;
 
-                // Delete the old query document
-                var deleteQueryFilter = Builders<BsonDocument>.Filter.Eq("_id", oldestQuery.Id);
-                trackerCacheQueriesCollection.DeleteOne(deleteQueryFilter);
+                // Delete the latest ReleaseInfo document
+                var deleteReleaseInfoFilter = Builders<BsonDocument>.Filter.Eq("_id", latestReleaseInfo["_id"].AsObjectId);
+                releaseInfosCollection.DeleteOne(deleteReleaseInfoFilter);
 
-                // Delete related ReleaseInfos documents
-                var deleteReleaseInfosFilter = Builders<BsonDocument>.Filter.Eq("TrackerCacheQueryId", oldestQuery.Id);
-                releaseInfosCollection.DeleteMany(deleteReleaseInfosFilter);
-
-                resultsPerQuery.Remove(oldestQuery);
+                releaseInfos.RemoveAt(releaseInfos.Count - 1);
                 prunedCounter++;
             }
-
             if (_logger.IsDebugEnabled)
             {
-                _logger.Debug($"CACHE PruneCacheByMaxResultsPerIndexer / Indexer: {trackerCache.TrackerId} / Pruned queries: {prunedCounter}");
-                //todo PrintCacheStatus();
+                _logger.Debug($"CACHE PruneCacheByMaxResultsPerIndexer / Tracker: {trackerId} / Pruned release infos: {prunedCounter}");
+                PrintCacheStatus();
             }
+        }
 
-
+        private void PrintCacheStatus()
+        {
+            var releaseInfosCollection = _database.GetCollection<BsonDocument>("ReleaseInfos");
+            var releaseInfosCount = releaseInfosCollection.CountDocuments(Builders<BsonDocument>.Filter.Empty);
+            _logger.Info($"CACHE Status / Total cached results:: {releaseInfosCount} documents");
         }
     }
 }
