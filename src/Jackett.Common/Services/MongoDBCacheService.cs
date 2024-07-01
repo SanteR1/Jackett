@@ -245,6 +245,8 @@ namespace Jackett.Common.Services
                                       .Lookup("TrackerCaches", "TrackerCacheQuery.TrackerCacheId", "_id", "TrackerCache")
                                       .Unwind("TrackerCache").SortByDescending(doc => doc["PublishDate"]).Limit(_serverConfig.CacheMaxResultsPerIndexer)
                                       .ToList();
+            _logger.Debug($"CACHE GetCachedResults / Results: {results.Count} (cache may contain more results)");
+            PrintCacheStatus();
 
             return results.Select(doc =>
             {
@@ -416,7 +418,7 @@ namespace Jackett.Common.Services
                 // Step 3: Delete corresponding entries in the ReleaseInfos collection
                 var releaseInfoFilter = Builders<BsonDocument>.Filter.In("TrackerCacheQueryId", expiredTrackerCacheQueryIds);
                 var deleteResult1 = releaseInfosCollection.DeleteMany(releaseInfoFilter);
-                _logger.Debug($"Pruned {deleteResult1.DeletedCount} documents from ReleaseInfos");
+                
 
                 // Step 4: Collect TrackerCacheId values from the expired TrackerCacheQuery documents
                 var expiredTrackerCacheIds =
@@ -425,11 +427,19 @@ namespace Jackett.Common.Services
                 // Step 5: Delete corresponding entries in the TrackerCaches collection
                 var trackerCachesFilter = Builders<BsonDocument>.Filter.In("_id", expiredTrackerCacheIds);
                 var deleteResult2 = trackerCachesCollection.DeleteMany(trackerCachesFilter);
-                _logger.Debug($"Pruned {deleteResult2.DeletedCount} documents from TrackerCaches");
+                
 
                 // Step 6: Delete expired documents from the TrackerCacheQueries collection
                 var deleteResult3 = trackerCacheQueriesCollection.DeleteMany(trackerCacheQueryFilter);
-                _logger.Debug($"Pruned {deleteResult3.DeletedCount} documents from TrackerCacheQueries");
+                
+
+                if (_logger.IsDebugEnabled)
+                {
+                    _logger.Debug($"Pruned {deleteResult1.DeletedCount} documents from ReleaseInfos");
+                    _logger.Debug($"Pruned {deleteResult2.DeletedCount} documents from TrackerCaches");
+                    _logger.Debug($"Pruned {deleteResult3.DeletedCount} documents from TrackerCacheQueries");
+                    PrintCacheStatus();
+                }
             }
         }
 
