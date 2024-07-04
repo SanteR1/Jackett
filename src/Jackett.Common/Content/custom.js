@@ -140,8 +140,9 @@ function loadJackettSettings() {
             var selectedValue = this.value;
             var element = document.getElementById("jackett-cache-connection-string");
             if (selectedValue === "-1" || selectedValue === "0") {
-                if (element) {
-                    element.setAttribute("placeholder", "Blank for default");
+                if (element) {                    
+                    element.setAttribute("placeholder", "Blank for default if Disable or Memory");
+                    element.value = "";
                 }
             }
             else {

@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using Jackett.Common.Indexers;
 using Jackett.Common.Models;
+using Jackett.Common.Services.Interfaces;
 
-namespace Jackett.Common.Services.Interfaces
+namespace Jackett.Common.Services
 {
     public class NoCacheService : ICacheService
     {

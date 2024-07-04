@@ -1,10 +1,7 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using Autofac;
 using Jackett.Common.Models.Config;
 using Jackett.Common.Services.Interfaces;
-using NLog;
 
 namespace Jackett.Common.Services
 {

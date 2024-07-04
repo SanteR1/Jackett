@@ -10,7 +10,6 @@ using Jackett.Common.Services;
 using Jackett.Common.Services.Interfaces;
 using Jackett.Common.Utils;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Driver.Core.Configuration;
 using NLog;
 
 namespace Jackett.Server.Controllers

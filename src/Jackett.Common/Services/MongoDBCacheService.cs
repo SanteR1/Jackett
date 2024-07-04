@@ -3,14 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using AngleSharp.Dom;
 using Jackett.Common.Indexers;
 using Jackett.Common.Models;
 using Jackett.Common.Models.Config;
-using Jackett.Common.Models.DTO;
 using Jackett.Common.Services.Interfaces;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using Newtonsoft.Json;
 using NLog;
@@ -49,8 +46,6 @@ namespace Jackett.Common.Services
             var trackerCaches = _database.GetCollection<BsonDocument>("TrackerCaches");
             var trackerCacheQueries = _database.GetCollection<BsonDocument>("TrackerCacheQueries");
             var releaseInfos = _database.GetCollection<BsonDocument>("ReleaseInfos");
-
-            // Create indexes or any initialization if needed
         }
 
         public void CacheResults(IIndexer indexer, TorznabQuery query, List<ReleaseInfo> releases)
@@ -114,7 +109,6 @@ namespace Jackett.Common.Services
                     }
                     _logger.Debug($"CACHE CacheResults / Indexer: {indexer.Id} / Added: {releases.Count} releases");
 
-
                     PruneCacheByMaxResultsPerIndexer(indexer.Id); // remove old results if we exceed the maximum limit
                 }
                 catch (Exception e)
@@ -139,7 +133,6 @@ namespace Jackett.Common.Services
                 trackerCachesCollection.InsertOne(document);
                 return document["_id"].AsObjectId;
             }
-
             return trackerCache["_id"].AsObjectId;
         }
 
@@ -173,13 +166,11 @@ namespace Jackett.Common.Services
                                               Builders<BsonDocument>.Filter.Eq("TrackerCache.TrackerId", indexer.Id),
                                               Builders<BsonDocument>.Filter.Eq("TrackerCacheQuery.QueryHash", queryHash)))
                                       .ToList();
-
             if (results.Count > 0)
             {
                 _logger.Debug($"CACHE Search Hit / Indexer: {indexer.Id} / Found: {results.Count} releases");
                 return results.Select(ConvertBsonToReleaseInfo).ToList();
             }
-
             return null;
         }
 
@@ -316,7 +307,6 @@ namespace Jackett.Common.Services
             var trackerCacheQueriesCollection = _database.GetCollection<BsonDocument>("TrackerCacheQueries");
             var releaseInfosCollection = _database.GetCollection<BsonDocument>("ReleaseInfos");
 
-            // Step 1: Find all TrackerCaches documents associated with the given indexer
             var trackerCachesFilter = Builders<BsonDocument>.Filter.Eq("TrackerId", indexer.Id);
             var trackerCachesDocs = trackerCachesCollection.Find(trackerCachesFilter).ToList();
 
@@ -326,24 +316,16 @@ namespace Jackett.Common.Services
                 return;
             }
 
-            // Step 2: Collect _id values of TrackerCaches documents
             var trackerCachesIds = trackerCachesDocs.Select(doc => doc["_id"].AsObjectId).ToList();
-
-            // Step 3: Find and delete corresponding TrackerCacheQueries documents
             var trackerCacheQueriesFilter = Builders<BsonDocument>.Filter.In("TrackerCacheId", trackerCachesIds);
             var trackerCacheQueriesDocs = trackerCacheQueriesCollection.Find(trackerCacheQueriesFilter).ToList();
 
             if (trackerCacheQueriesDocs.Any())
             {
-                // Step 4: Collect _id values of TrackerCacheQueries documents
                 var trackerCacheQueryIds = trackerCacheQueriesDocs.Select(doc => doc["_id"].AsObjectId).ToList();
-
-                // Step 5: Find and delete corresponding ReleaseInfos documents
                 var releaseInfosFilter = Builders<BsonDocument>.Filter.In("TrackerCacheQueryId", trackerCacheQueryIds);
                 var deleteReleaseInfosResult = releaseInfosCollection.DeleteMany(releaseInfosFilter);
                 _logger.Debug($"Deleted {deleteReleaseInfosResult.DeletedCount} documents from ReleaseInfos for indexer {indexer.Id}");
-
-                // Delete TrackerCacheQueries documents
                 var deleteTrackerCacheQueriesResult = trackerCacheQueriesCollection.DeleteMany(trackerCacheQueriesFilter);
                 _logger.Debug($"Deleted {deleteTrackerCacheQueriesResult.DeletedCount} documents from TrackerCacheQueries for indexer {indexer.Id}");
             }
@@ -351,8 +333,6 @@ namespace Jackett.Common.Services
             {
                 _logger.Debug($"No TrackerCacheQueries documents found for TrackerCaches of indexer {indexer.Id}");
             }
-
-            // Step 6: Delete TrackerCaches documents
             var deleteTrackerCachesResult = trackerCachesCollection.DeleteMany(trackerCachesFilter);
             _logger.Debug($"Deleted {deleteTrackerCachesResult.DeletedCount} documents from TrackerCaches for indexer {indexer.Id}");
         }
@@ -372,21 +352,16 @@ namespace Jackett.Common.Services
         private string GetQueryHash(TorznabQuery query)
         {
             var json = GetSerializedQuery(query);
-            // Compute the hash
             return BitConverter.ToString(_sha256.ComputeHash(Encoding.UTF8.GetBytes(json)));
         }
         private static string GetSerializedQuery(TorznabQuery query)
         {
             var json = JsonConvert.SerializeObject(query);
-
-            // Changes in the query to improve cache hits
-            // Both request must return the same results, if not we are breaking Jackett search
             json = json.Replace("\"SearchTerm\":null", "\"SearchTerm\":\"\"");
-
             return json;
         }
 
-        public void PruneCacheByTtl()
+        private void PruneCacheByTtl()
         {
             if (_serverConfig.CacheTtl <= 0)
             {
@@ -402,7 +377,6 @@ namespace Jackett.Common.Services
                 var releaseInfosCollection = _database.GetCollection<BsonDocument>("ReleaseInfos");
                 var trackerCachesCollection = _database.GetCollection<BsonDocument>("TrackerCaches");
 
-                // Step 1: Find expired documents in the TrackerCacheQueries collection
                 var trackerCacheQueryFilter = Builders<BsonDocument>.Filter.Lt("Created", expirationDate);
                 var expiredTrackerCacheQueryDocs = trackerCacheQueriesCollection.Find(trackerCacheQueryFilter).ToList();
 
@@ -411,28 +385,14 @@ namespace Jackett.Common.Services
                     _logger.Debug("No expired documents found in TrackerCacheQueries for pruning.");
                     return;
                 }
-
-                // Step 2: Collect _id values of expired TrackerCacheQuery documents
                 var expiredTrackerCacheQueryIds = expiredTrackerCacheQueryDocs.Select(doc => doc["_id"].AsObjectId).ToList();
-
-                // Step 3: Delete corresponding entries in the ReleaseInfos collection
                 var releaseInfoFilter = Builders<BsonDocument>.Filter.In("TrackerCacheQueryId", expiredTrackerCacheQueryIds);
                 var deleteResult1 = releaseInfosCollection.DeleteMany(releaseInfoFilter);
-                
-
-                // Step 4: Collect TrackerCacheId values from the expired TrackerCacheQuery documents
                 var expiredTrackerCacheIds =
                     expiredTrackerCacheQueryDocs.Select(doc => doc["TrackerCacheId"].AsObjectId).ToList();
-
-                // Step 5: Delete corresponding entries in the TrackerCaches collection
                 var trackerCachesFilter = Builders<BsonDocument>.Filter.In("_id", expiredTrackerCacheIds);
                 var deleteResult2 = trackerCachesCollection.DeleteMany(trackerCachesFilter);
-                
-
-                // Step 6: Delete expired documents from the TrackerCacheQueries collection
                 var deleteResult3 = trackerCacheQueriesCollection.DeleteMany(trackerCacheQueryFilter);
-                
-
                 if (_logger.IsDebugEnabled)
                 {
                     _logger.Debug($"Pruned {deleteResult1.DeletedCount} documents from ReleaseInfos");
@@ -443,13 +403,11 @@ namespace Jackett.Common.Services
             }
         }
 
-        public void PruneCacheByMaxResultsPerIndexer(string trackerId)
+        private void PruneCacheByMaxResultsPerIndexer(string trackerId)
         {
             var trackerCachesCollection = _database.GetCollection<BsonDocument>("TrackerCaches");
             var trackerCacheQueriesCollection = _database.GetCollection<BsonDocument>("TrackerCacheQueries");
             var releaseInfosCollection = _database.GetCollection<BsonDocument>("ReleaseInfos");
-
-            // Step 1: Find all TrackerCaches documents for the given TrackerId
             var trackerCachesFilter = Builders<BsonDocument>.Filter.Eq("TrackerId", trackerId);
             var trackerCaches = trackerCachesCollection.Find(trackerCachesFilter).ToList();
 
@@ -458,8 +416,6 @@ namespace Jackett.Common.Services
                 _logger.Debug($"No TrackerCaches documents found for tracker {trackerId}");
                 return;
             }
-
-            // Step 2: Find all TrackerCacheQueries documents for the given TrackerCacheIds
             var trackerCacheIds = trackerCaches.Select(tc => tc["_id"].AsObjectId).ToList();
             var trackerCacheQueriesFilter = Builders<BsonDocument>.Filter.In("TrackerCacheId", trackerCacheIds);
             var trackerCacheQueries = trackerCacheQueriesCollection.Find(trackerCacheQueriesFilter).ToList();
@@ -469,29 +425,23 @@ namespace Jackett.Common.Services
                 _logger.Debug($"No TrackerCacheQueries documents found for TrackerId {trackerId}");
                 return;
             }
-
-            // Step 3: Find all ReleaseInfos documents for the given TrackerCacheQueryIds
             var trackerCacheQueryIds = trackerCacheQueries.Select(tcq => tcq["_id"].AsObjectId).ToList();
             var releaseInfosFilter = Builders<BsonDocument>.Filter.In("TrackerCacheQueryId", trackerCacheQueryIds);
             var releaseInfos = releaseInfosCollection.Find(releaseInfosFilter).ToList();
 
-            int totalResultsCount = releaseInfos.Count;
+            var totalResultsCount = releaseInfos.Count;
 
             if (totalResultsCount <= _serverConfig.CacheMaxResultsPerIndexer)
             {
                 _logger.Debug($"Total results count {totalResultsCount} is within the limit {_serverConfig.CacheMaxResultsPerIndexer}");
                 return;
             }
-
-            // Step 4: Prune old ReleaseInfos if total results exceed the limit
-            int prunedCounter = 0;
+            var prunedCounter = 0;
 
             while (totalResultsCount > _serverConfig.CacheMaxResultsPerIndexer)
             {
                 var latestReleaseInfo = releaseInfos.Last();
                 totalResultsCount--;
-
-                // Delete the latest ReleaseInfo document
                 var deleteReleaseInfoFilter = Builders<BsonDocument>.Filter.Eq("_id", latestReleaseInfo["_id"].AsObjectId);
                 releaseInfosCollection.DeleteOne(deleteReleaseInfoFilter);
 

@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using Amazon.Auth.AccessControlPolicy;
 using Jackett.Common.Indexers;
 using Jackett.Common.Models;
 using Jackett.Common.Models.Config;
-using Jackett.Common.Models.DTO;
 using Jackett.Common.Services.Interfaces;
 using Microsoft.Data.Sqlite;
 using Newtonsoft.Json;
@@ -105,6 +103,7 @@ namespace Jackett.Common.Services
         {
             if (query.IsTest)
                 return;
+
             lock (_dbLock)
             {
                 try
@@ -114,13 +113,9 @@ namespace Jackett.Common.Services
                         connection.Open();
                         using (var transaction = connection.BeginTransaction())
                         {
-                            // Add or get TrackerCache
                             var trackerCacheId = GetOrAddTrackerCache(connection, indexer);
-
-                            // Add TrackerCacheQuery
                             var trackerCacheQueryId = AddTrackerCacheQuery(connection, trackerCacheId, query);
 
-                            // Add releases
                             foreach (var release in releases)
                             {
                                 var command = connection.CreateCommand();
@@ -184,17 +179,11 @@ namespace Jackett.Common.Services
                             transaction.Commit();
                         }
                     }
-
-                    //TODO
-                    // remove old results if we exceed the maximum limit
-                    //var trackerCache = new TrackerCache { TrackerId = indexer.Id };
-                    //PruneCacheByMaxResultsPerIndexer(trackerCache);
-
+                    PruneCacheByMaxResultsPerIndexer(indexer.Id);
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e);
-                    throw;
+                    _logger.Error($"CacheResults adds parameter to the collections, {e.Message}");
                 }
             }
         }
@@ -203,8 +192,7 @@ namespace Jackett.Common.Services
         {
             var command = connection.CreateCommand();
             command.CommandText = @"
-    SELECT Id FROM TrackerCaches WHERE TrackerId = $trackerId;
-    ";
+            SELECT Id FROM TrackerCaches WHERE TrackerId = $trackerId;";
             command.Parameters.AddWithValue("$trackerId", indexer.Id);
 
             var trackerCacheId = command.ExecuteScalar();
@@ -212,10 +200,9 @@ namespace Jackett.Common.Services
             if (trackerCacheId == null)
             {
                 command.CommandText = @"
-        INSERT INTO TrackerCaches (TrackerId, TrackerName, TrackerType)
-        VALUES ($trackerId, $trackerName, $trackerType);
-        SELECT last_insert_rowid();
-        ";
+                INSERT INTO TrackerCaches (TrackerId, TrackerName, TrackerType)
+                VALUES ($trackerId, $trackerName, $trackerType);
+                SELECT last_insert_rowid();";
                 command.Parameters.AddWithValue("$trackerName", indexer.Name);
                 command.Parameters.AddWithValue("$trackerType", indexer.Type);
                 trackerCacheId = command.ExecuteScalar();
@@ -228,10 +215,9 @@ namespace Jackett.Common.Services
         {
             var command = connection.CreateCommand();
             command.CommandText = @"
-    INSERT INTO TrackerCacheQueries (TrackerCacheId, QueryHash, Created)
-    VALUES ($trackerCacheId, $queryHash, $created);
-    SELECT last_insert_rowid();
-    ";
+            INSERT INTO TrackerCacheQueries (TrackerCacheId, QueryHash, Created)
+            VALUES ($trackerCacheId, $queryHash, $created);
+            SELECT last_insert_rowid();";
             command.Parameters.AddWithValue("$trackerCacheId", trackerCacheId);
             command.Parameters.AddWithValue("$queryHash", GetQueryHash(query));
             command.Parameters.AddWithValue("$created", DateTime.Now);
@@ -253,12 +239,11 @@ namespace Jackett.Common.Services
                 connection.Open();
                 var command = connection.CreateCommand();
                 command.CommandText = @"
-            SELECT ri.*
-            FROM ReleaseInfos ri
-            JOIN TrackerCacheQueries tcq ON ri.TrackerCacheQueryId = tcq.Id
-            JOIN TrackerCaches tc ON tcq.TrackerCacheId = tc.Id
-            WHERE tc.TrackerId = $trackerId AND tcq.QueryHash = $queryHash
-        ";
+                SELECT ri.*
+                FROM ReleaseInfos ri
+                JOIN TrackerCacheQueries tcq ON ri.TrackerCacheQueryId = tcq.Id
+                JOIN TrackerCaches tc ON tcq.TrackerCacheId = tc.Id
+                WHERE tc.TrackerId = $trackerId AND tcq.QueryHash = $queryHash";
                 command.Parameters.AddWithValue("$trackerId", indexer.Id);
                 command.Parameters.AddWithValue("$queryHash", queryHash);
 
@@ -407,8 +392,7 @@ namespace Jackett.Common.Services
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine(e);
-                        throw;
+                        _logger.Error($"Search adds parameter to the collections, {e.Message}");
                     }
                 }
 
@@ -439,64 +423,128 @@ namespace Jackett.Common.Services
 
                     var command = connection.CreateCommand();
                     command.CommandText = @"
-            SELECT ReleaseInfos.*, TrackerCaches.TrackerName, TrackerCaches.TrackerId, TrackerCaches.TrackerType
-            FROM ReleaseInfos
-            INNER JOIN TrackerCacheQueries ON ReleaseInfos.TrackerCacheQueryId = TrackerCacheQueries.Id
-            INNER JOIN TrackerCaches ON TrackerCacheQueries.TrackerCacheId = TrackerCaches.Id
-            ORDER BY ReleaseInfos.PublishDate DESC
-            LIMIT 3000;
-            ";
-
+                    SELECT ReleaseInfos.*, TrackerCaches.TrackerName, TrackerCaches.TrackerId, TrackerCaches.TrackerType
+                    FROM ReleaseInfos
+                    INNER JOIN TrackerCacheQueries ON ReleaseInfos.TrackerCacheQueryId = TrackerCacheQueries.Id
+                    INNER JOIN TrackerCaches ON TrackerCacheQueries.TrackerCacheId = TrackerCaches.Id
+                    ORDER BY ReleaseInfos.PublishDate DESC
+                    LIMIT 3000;";
                     using (var reader = command.ExecuteReader())
                     {
                         while (reader.Read())
                         {
-                            results.Add(new TrackerCacheResult(new ReleaseInfo
+                            try
                             {
-                                Title = reader["Title"].ToString(),
-                                Guid = new Uri(reader["Guid"].ToString()),
-                                Link = new Uri(reader["Link"].ToString()),
-                                Details = new Uri(reader["Details"].ToString()),
-                                PublishDate = DateTime.Parse(reader["PublishDate"].ToString()),
-                                Category = reader["Category"].ToString().Split(',').Select(int.Parse).ToList(),
-                                Size = reader["Size"] != DBNull.Value ? (long?)Convert.ToInt64(reader["Size"]) : null,
-                                Files = reader["Files"] != DBNull.Value ? (long?)Convert.ToInt64(reader["Files"]) : null,
-                                Grabs = reader["Grabs"] != DBNull.Value ? (long?)Convert.ToInt64(reader["Grabs"]) : null,
-                                Description = reader["Description"].ToString(),
-                                RageID = reader["RageID"] != DBNull.Value ? (long?)Convert.ToInt64(reader["RageID"]) : null,
-                                TVDBId = reader["TVDBId"] != DBNull.Value ? (long?)Convert.ToInt64(reader["TVDBId"]) : null,
-                                Imdb = reader["Imdb"] != DBNull.Value ? (long?)Convert.ToInt64(reader["Imdb"]) : null,
-                                TMDb = reader["TMDb"] != DBNull.Value ? (long?)Convert.ToInt64(reader["TMDb"]) : null,
-                                TVMazeId = reader["TVMazeId"] != DBNull.Value ? (long?)Convert.ToInt64(reader["TVMazeId"]) : null,
-                                TraktId = reader["TraktId"] != DBNull.Value ? (long?)Convert.ToInt64(reader["TraktId"]) : null,
-                                DoubanId = reader["DoubanId"] != DBNull.Value ? (long?)Convert.ToInt64(reader["DoubanId"]) : null,
-                                Genres = reader["Genres"].ToString().Split(',').ToList(),
-                                Languages = reader["Languages"].ToString().Split(',').ToList(),
-                                Subs = reader["Subs"].ToString().Split(',').ToList(),
-                                Year = reader["Year"] != DBNull.Value ? (long?)Convert.ToInt64(reader["Year"]) : null,
-                                Author = reader["Author"].ToString(),
-                                BookTitle = reader["BookTitle"].ToString(),
-                                Publisher = reader["Publisher"].ToString(),
-                                Artist = reader["Artist"].ToString(),
-                                Album = reader["Album"].ToString(),
-                                Label = reader["Label"].ToString(),
-                                Track = reader["Track"].ToString(),
-                                Seeders = reader["Seeders"] != DBNull.Value ? (long?)Convert.ToInt64(reader["Seeders"]) : null,
-                                Peers = reader["Peers"] != DBNull.Value ? (long?)Convert.ToInt64(reader["Peers"]) : null,
-                                Poster = new Uri(reader["Poster"].ToString()),
-                                InfoHash = reader["InfoHash"].ToString(),
-                                MagnetUri = new Uri(reader["MagnetUri"].ToString()),
-                                MinimumRatio = reader["MinimumRatio"] != DBNull.Value ? (double?)Convert.ToDouble(reader["MinimumRatio"]) : null,
-                                MinimumSeedTime = reader["MinimumSeedTime"] != DBNull.Value ? (long?)Convert.ToInt64(reader["MinimumSeedTime"]) : null,
-                                DownloadVolumeFactor = reader["DownloadVolumeFactor"] != DBNull.Value ? (double?)Convert.ToDouble(reader["DownloadVolumeFactor"]) : null,
-                                UploadVolumeFactor = reader["UploadVolumeFactor"] != DBNull.Value ? (double?)Convert.ToDouble(reader["UploadVolumeFactor"]) : null,
-                                Origin = null // Восстановление Origin не требуется
-                            })
+                                results.Add(
+                                    new TrackerCacheResult(
+                                        new ReleaseInfo
+                                        {
+                                            Title = reader["Title"].ToString(),
+                                            Guid = new Uri(reader["Guid"].ToString()),
+                                            Link = new Uri(reader["Link"].ToString()),
+                                            Details = new Uri(reader["Details"].ToString()),
+                                            PublishDate = DateTime.Parse(reader["PublishDate"].ToString()),
+                                            Category = reader["Category"].ToString().Split(',').Select(int.Parse).ToList(),
+                                            Size =
+                                                reader["Size"] != DBNull.Value
+                                                    ? (long?)Convert.ToInt64(reader["Size"])
+                                                    : null,
+                                            Files =
+                                                reader["Files"] != DBNull.Value
+                                                    ? (long?)Convert.ToInt64(reader["Files"])
+                                                    : null,
+                                            Grabs =
+                                                reader["Grabs"] != DBNull.Value
+                                                    ? (long?)Convert.ToInt64(reader["Grabs"])
+                                                    : null,
+                                            Description = reader["Description"].ToString(),
+                                            RageID =
+                                                reader["RageID"] != DBNull.Value
+                                                    ? (long?)Convert.ToInt64(reader["RageID"])
+                                                    : null,
+                                            TVDBId =
+                                                reader["TVDBId"] != DBNull.Value
+                                                    ? (long?)Convert.ToInt64(reader["TVDBId"])
+                                                    : null,
+                                            Imdb =
+                                                reader["Imdb"] != DBNull.Value
+                                                    ? (long?)Convert.ToInt64(reader["Imdb"])
+                                                    : null,
+                                            TMDb =
+                                                reader["TMDb"] != DBNull.Value
+                                                    ? (long?)Convert.ToInt64(reader["TMDb"])
+                                                    : null,
+                                            TVMazeId =
+                                                reader["TVMazeId"] != DBNull.Value
+                                                    ? (long?)Convert.ToInt64(reader["TVMazeId"])
+                                                    : null,
+                                            TraktId =
+                                                reader["TraktId"] != DBNull.Value
+                                                    ? (long?)Convert.ToInt64(reader["TraktId"])
+                                                    : null,
+                                            DoubanId =
+                                                reader["DoubanId"] != DBNull.Value
+                                                    ? (long?)Convert.ToInt64(reader["DoubanId"])
+                                                    : null,
+                                            Genres = reader["Genres"].ToString().Split(',').ToList(),
+                                            Languages = reader["Languages"].ToString().Split(',').ToList(),
+                                            Subs = reader["Subs"].ToString().Split(',').ToList(),
+                                            Year =
+                                                reader["Year"] != DBNull.Value
+                                                    ? (long?)Convert.ToInt64(reader["Year"])
+                                                    : null,
+                                            Author = reader["Author"].ToString(),
+                                            BookTitle = reader["BookTitle"].ToString(),
+                                            Publisher = reader["Publisher"].ToString(),
+                                            Artist = reader["Artist"].ToString(),
+                                            Album = reader["Album"].ToString(),
+                                            Label = reader["Label"].ToString(),
+                                            Track = reader["Track"].ToString(),
+                                            Seeders =
+                                                reader["Seeders"] != DBNull.Value
+                                                    ? (long?)Convert.ToInt64(reader["Seeders"])
+                                                    : null,
+                                            Peers =
+                                                reader["Peers"] != DBNull.Value
+                                                    ? (long?)Convert.ToInt64(reader["Peers"])
+                                                    : null,
+                                            Poster =
+                                                reader["Poster"] != DBNull.Value
+                                                    ? new Uri(reader["Poster"].ToString())
+                                                    : null,
+                                            InfoHash = reader["InfoHash"].ToString(),
+                                            MagnetUri =
+                                                reader["MagnetUri"] != DBNull.Value
+                                                    ? new Uri(reader["MagnetUri"].ToString())
+                                                    : null,
+                                            MinimumRatio =
+                                                reader["MinimumRatio"] != DBNull.Value
+                                                    ? (double?)Convert.ToDouble(reader["MinimumRatio"])
+                                                    : null,
+                                            MinimumSeedTime =
+                                                reader["MinimumSeedTime"] != DBNull.Value
+                                                    ? (long?)Convert.ToInt64(reader["MinimumSeedTime"])
+                                                    : null,
+                                            DownloadVolumeFactor =
+                                                reader["DownloadVolumeFactor"] != DBNull.Value
+                                                    ? (double?)Convert.ToDouble(reader["DownloadVolumeFactor"])
+                                                    : null,
+                                            UploadVolumeFactor =
+                                                reader["UploadVolumeFactor"] != DBNull.Value
+                                                    ? (double?)Convert.ToDouble(reader["UploadVolumeFactor"])
+                                                    : null,
+                                            Origin = null // Restore Origin not required
+                                        })
+                                        {
+                                            TrackerId = reader["TrackerId"].ToString(),
+                                            Tracker = reader["TrackerName"].ToString(),
+                                            TrackerType = reader["TrackerType"].ToString()
+                                        });
+                            }
+                            catch (Exception e)
                             {
-                                TrackerId = reader["TrackerId"].ToString(),
-                                Tracker = reader["Tracker"].ToString(),
-                                TrackerType = reader["TrackerType"].ToString()
-                            });
+                                _logger.Error($"GetCachedResults adds parameter to the collections, {e.Message}");
+                            }
                         }
                     }
                 }
@@ -548,9 +596,9 @@ namespace Jackett.Common.Services
                     connection.Open();
                     var command = connection.CreateCommand();
                     command.CommandText = @"
-                DELETE FROM ReleaseInfos;
-                DELETE FROM TrackerCacheQueries;
-                DELETE FROM TrackerCaches;";
+                    DELETE FROM ReleaseInfos;
+                    DELETE FROM TrackerCacheQueries;
+                    DELETE FROM TrackerCaches;";
                     command.ExecuteNonQuery();
                 }
 
@@ -559,7 +607,7 @@ namespace Jackett.Common.Services
             }
         }
 
-        public void PruneCacheByTtl()
+        private void PruneCacheByTtl()
         {
             lock (_dbLock)
             {
@@ -569,11 +617,10 @@ namespace Jackett.Common.Services
                     var expirationDate = DateTime.Now.AddSeconds(-_serverConfig.CacheTtl);
                     var command = connection.CreateCommand();
                     command.CommandText = @"
-                DELETE FROM ReleaseInfos 
-                WHERE TrackerCacheQueryId IN (
-                    SELECT Id FROM TrackerCacheQueries 
-                    WHERE Created < $expirationDate
-                )";
+                    DELETE FROM ReleaseInfos 
+                    WHERE TrackerCacheQueryId IN (
+                        SELECT Id FROM TrackerCacheQueries 
+                        WHERE Created < $expirationDate)";
                     command.Parameters.AddWithValue("$expirationDate", expirationDate);
 
                     var prunedCounter = command.ExecuteNonQuery();
@@ -584,25 +631,23 @@ namespace Jackett.Common.Services
             }
         }
 
-        public void PruneCacheByMaxResultsPerIndexer(TrackerCache trackerCache)
+        private void PruneCacheByMaxResultsPerIndexer(string trackerId)
         {
             using (var connection = new SqliteConnection("Data Source=" + _connectionString))
             {
                 connection.Open();
 
-                // Step 1: Get all queries and their result counts for the given tracker, ordered by Created descending
                 var command = connection.CreateCommand();
                 command.CommandText = @"
-            SELECT tcq.Id, tcq.Created, (
-                SELECT COUNT(*) FROM ReleaseInfos ri
-                WHERE ri.TrackerCacheQueryId = tcq.Id
-            ) AS ResultCount
-            FROM TrackerCacheQueries tcq
-            JOIN TrackerCaches tc ON tcq.TrackerCacheId = tc.Id
-            WHERE tc.TrackerId = $trackerId
-            ORDER BY tcq.Created DESC
-        ";
-                command.Parameters.AddWithValue("$trackerId", trackerCache.TrackerId);
+                SELECT tcq.Id, tcq.Created, (
+                    SELECT COUNT(*) FROM ReleaseInfos ri
+                    WHERE ri.TrackerCacheQueryId = tcq.Id
+                ) AS ResultCount
+                FROM TrackerCacheQueries tcq
+                JOIN TrackerCaches tc ON tcq.TrackerCacheId = tc.Id
+                WHERE tc.TrackerId = $trackerId
+                ORDER BY tcq.Created DESC";
+                command.Parameters.AddWithValue("$trackerId", trackerId);
 
                 var resultsPerQuery = new List<Tuple<long, int>>();
                 using (var reader = command.ExecuteReader())
@@ -615,7 +660,6 @@ namespace Jackett.Common.Services
                     }
                 }
 
-                // Step 2: Remove older queries until the total results are within the limit
                 var prunedCounter = 0;
                 while (true)
                 {
@@ -626,12 +670,10 @@ namespace Jackett.Common.Services
                     var olderQuery = resultsPerQuery.Last();
                     var queryIdToRemove = olderQuery.Item1;
 
-                    // Remove the older query
                     var deleteCommand = connection.CreateCommand();
                     deleteCommand.CommandText = @"
-                DELETE FROM TrackerCacheQueries WHERE Id = $queryId;
-                DELETE FROM ReleaseInfos WHERE TrackerCacheQueryId = $queryId;
-            ";
+                    DELETE FROM TrackerCacheQueries WHERE Id = $queryId;
+                    DELETE FROM ReleaseInfos WHERE TrackerCacheQueryId = $queryId;";
                     deleteCommand.Parameters.AddWithValue("$queryId", queryIdToRemove);
                     deleteCommand.ExecuteNonQuery();
 
@@ -641,7 +683,7 @@ namespace Jackett.Common.Services
 
                 if (_logger.IsDebugEnabled)
                 {
-                    _logger.Debug($"CACHE PruneCacheByMaxResultsPerIndexer / Indexer: {trackerCache.TrackerId} / Pruned queries: {prunedCounter}");
+                    _logger.Debug($"CACHE PruneCacheByMaxResultsPerIndexer / Indexer: {trackerId} / Pruned queries: {prunedCounter}");
                     PrintCacheStatus();
                 }
             }
@@ -653,22 +695,18 @@ namespace Jackett.Common.Services
         {
 
             var json = GetSerializedQuery(query);
-            // Compute the hash
             return BitConverter.ToString(_sha256.ComputeHash(Encoding.UTF8.GetBytes(json)));
         }
 
         private static string GetSerializedQuery(TorznabQuery query)
         {
             var json = JsonConvert.SerializeObject(query);
-
-            // Changes in the query to improve cache hits
-            // Both request must return the same results, if not we are breaking Jackett search
             json = json.Replace("\"SearchTerm\":null", "\"SearchTerm\":\"\"");
 
             return json;
         }
 
-        public void PrintCacheStatus()
+        private void PrintCacheStatus()
         {
             using (var connection = new SqliteConnection("Data Source=" + _connectionString))
             {
