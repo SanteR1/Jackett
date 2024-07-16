@@ -334,6 +334,7 @@ namespace Jackett.Updater
                 "Definitions/casatorrent.yml", // renamed to teamctgame
                 "Definitions/casstudiotv.yml",
                 "Definitions/ccfbits.yml",
+                "Definitions/centraltorrent.yml",
                 "Definitions/channelx.yml",
                 "Definitions/cheggit.yml",
                 "Definitions/cili180.yml", // renamed to liaorencili
@@ -392,6 +393,7 @@ namespace Jackett.Updater
                 "Definitions/fastscene.yml",
                 "Definitions/feedurneed.yml", // merged with devilsplayground #6872
                 "Definitions/fenyarnyek-tracker.yml",
+                "Definitions/file-shack.yml",
                 "Definitions/filebase.yml",
                 "Definitions/filelisting.yml",
                 "Definitions/film-paleis.yml",
@@ -411,6 +413,7 @@ namespace Jackett.Updater
                 "Definitions/fusionmayhem.yml",
                 "Definitions/gainbound.yml",
                 "Definitions/galeriens.yml",
+                "Definitions/gamera.yml",
                 "Definitions/gdf76.yml",
                 "Definitions/generationfree.yml", // switch to unit3d api #12982
                 "Definitions/gfxnews.yml",
@@ -433,6 +436,7 @@ namespace Jackett.Updater
                 "Definitions/hdclub.yml",
                 "Definitions/hddisk.yml",
                 "Definitions/hdhouse.yml",
+                "Definitions/hdmayi.yml",
                 "Definitions/hdme.yml",
                 "Definitions/hdmonkey.yml",
                 "Definitions/hdolimpo.yml", // migrated to UNIT3D API
@@ -444,7 +448,6 @@ namespace Jackett.Updater
                 "Definitions/heavens-hell.yml",
                 "Definitions/hellastz.yml",
                 "Definitions/hidden-palace.yml",
-                "Definitions/homeporntorrents.yml",
                 "Definitions/hon3yhd-net.yml",
                 "Definitions/hon3yhd.yml",
                 "Definitions/horriblesubs.yml",
@@ -498,6 +501,7 @@ namespace Jackett.Updater
                 "Definitions/megabliz.yml",
                 "Definitions/mendigosdaweb.yml",
                 "Definitions/metal-iplay-ro.yml", // renamed to romanianmetaltorrents
+                "Definitions/metalwrks.yml",
                 "Definitions/microbit.yml",
                 "Definitions/mkvcage.yml",
                 "Definitions/moecat.yml",
@@ -520,6 +524,7 @@ namespace Jackett.Updater
                 "Definitions/netcosmo.yml",
                 "Definitions/netlab.yml",
                 "Definitions/newpct-me.yml",
+                "Definitions/nextjav.yml",
                 "Definitions/nexttorrent.yml",
                 "Definitions/nforce.yml",
                 "Definitions/nitro.yml",
@@ -531,6 +536,7 @@ namespace Jackett.Updater
                 "Definitions/nyoo.yml",
                 "Definitions/oasis.yml",
                 "Definitions/obscure.yml",
+                "Definitions/okfunpt.yml",
                 "Definitions/omgwtftrackr.yml",
                 "Definitions/oncesearch.yml",
                 "Definitions/onlineselfeducation.yml",
@@ -578,6 +584,7 @@ namespace Jackett.Updater
                 "Definitions/rgu.yml",
                 "Definitions/rmhd.yml",
                 "Definitions/rns.yml", // site merged with audiobooktorrents
+                "Definitions/rockethd.yml",
                 "Definitions/rockhardlossless.yml",
                 "Definitions/rodvd.yml",
                 "Definitions/rofd.yml",
@@ -595,14 +602,17 @@ namespace Jackett.Updater
                 "Definitions/secretcinema.yml", // migrated to C# gazelle base tracker
                 "Definitions/seedpeer.yml",
                 "Definitions/sexxi.yml",
+                "Definitions/shadowflow.yml",
                 "Definitions/sharefiles.yml",
                 "Definitions/shareisland.yml", // switch to *-API #8682
                 "Definitions/sharespacedb.yml",
                 "Definitions/shareuniversity.yml",
                 "Definitions/sharingue.yml",
                 "Definitions/shellife.yml",
+                "Definitions/sharkpt.yml",
                 "Definitions/shokweb.yml",
                 "Definitions/skipthecommercials.yml", // switch to *-API #8682
+                "Definitions/skipthetrailers.yml",
                 "Definitions/skytorrents-lol.yml",
                 "Definitions/skytorrents-to.yml",
                 "Definitions/skytorrents.yml",
@@ -649,12 +659,14 @@ namespace Jackett.Updater
                 "Definitions/torlook.yml",
                 "Definitions/toros.yml", // renamed to bulltorrent
                 "Definitions/torrent911.yml", // renamed to oxtorrent-vip #15411
+                "Definitions/torrent9clone.yml", // renamed to torrent9-tel #15217
                 "Definitions/torrent-paradise-ml.yml",
                 "Definitions/torrent4you.yml",
                 "Definitions/torrentbomb.yml",
                 "Definitions/torrentcouch.yml",
                 "Definitions/torrentdb.yml",
                 "Definitions/torrentfactory.yml",
+                "Definitions/torrentgalaxy.yml",
                 "Definitions/torrentgalaxyorg.yml", // renamed to torrentgalaxy
                 "Definitions/torrenthane.yml",
                 "Definitions/torrentkim.yml",
@@ -683,6 +695,7 @@ namespace Jackett.Updater
                 "Definitions/trackeros.yml", // switch to *-API #12807
                 "Definitions/tspate.yml",
                 "Definitions/ttobogo.yml",
+                "Definitions/ttsweb.yml",
                 "Definitions/turknova.yml",
                 "Definitions/turkseed.yml",
                 "Definitions/turktracker.yml",

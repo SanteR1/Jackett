@@ -8,16 +8,12 @@ encoding: UTF-8
 links:
   - https://www.demonoid.is/
   - https://www.dnoid.to/
-  - https://www.dnoid.pw/
-  - https://demonoid.torrentbay.st/
 legacylinks:
   - https://demonoidevmsgasmojajlhikwetsr4pxzw6xkjt3dgdv6nr5yxvsamid.onion.ly/
   - https://demonoidevmsgasmojajlhikwetsr4pxzw6xkjt3dgdv6nr5yxvsamid.tor2web.to/
   - https://demonoidevmsgasmojajlhikwetsr4pxzw6xkjt3dgdv6nr5yxvsamid.tor2web.link/ # Origin is unreachable Error code 523
   - https://demonoid.mrunblock.guru/
   - https://demonoid.torrentbay.to/
-  - https://demonoid.unblockit.click/
-  - https://demonoid.unblockit.asia/
   - https://demonoid.unblockit.mov/
   - https://demonoid.mrunblock.life/
   - https://demonoid.unblockit.rsvp/
@@ -35,6 +31,10 @@ legacylinks:
   - https://demonoid.unblockit.casa/ # 302
   - https://unblockit.sbs/ # 526
   - https://unblockit.ong/ # 526
+  - https://demonoid.unblockit.black/ # site broken by ad
+  - https://www.dnoid.pw/
+  - https://demonoid.torrentbay.st/
+  - https://demonoid.unblockit.meme/ # site broken by ad
 
 caps:
   categorymappings:
