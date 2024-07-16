@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Jackett.Common.Models
 {
-    public class TrackerCache
+    internal class TrackerCache
     {
         public string TrackerId { set; get; }
         public string TrackerName { set; get; }

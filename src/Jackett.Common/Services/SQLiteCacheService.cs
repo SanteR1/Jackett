@@ -534,12 +534,12 @@ namespace Jackett.Common.Services
                                                     : null,
                                             Origin = null // Restore Origin not required
                                         })
-                                        {
-                                            FirstSeen = DateTime.Parse(reader["Created"].ToString()),
+                                    {
+                                        FirstSeen = DateTime.Parse(reader["Created"].ToString()),
                                         TrackerId = reader["TrackerId"].ToString(),
-                                            Tracker = reader["TrackerName"].ToString(),
-                                            TrackerType = reader["TrackerType"].ToString()
-                                        });
+                                        Tracker = reader["TrackerName"].ToString(),
+                                        TrackerType = reader["TrackerType"].ToString()
+                                    });
                             }
                             catch (Exception e)
                             {
