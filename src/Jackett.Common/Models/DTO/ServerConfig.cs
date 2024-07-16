@@ -35,8 +35,6 @@ namespace Jackett.Common.Models.DTO
         public string basepathoverride { get; set; }
         [DataMember]
         public string baseurloverride { get; set; }
-        //[DataMember]
-        //public bool cache_enabled { get; set; }
         [DataMember]
         public CacheType cache_type { get; set; }
         [DataMember]
@@ -89,7 +87,6 @@ namespace Jackett.Common.Models.DTO
             logging = config.RuntimeSettings.TracingEnabled;
             basepathoverride = config.BasePathOverride;
             baseurloverride = config.BaseUrlOverride;
-            //cache_enabled = config.CacheEnabled;
             cache_type = config.CacheType;
             cache_connection_string = config.ConnectionString;
             cache_ttl = config.CacheTtl;

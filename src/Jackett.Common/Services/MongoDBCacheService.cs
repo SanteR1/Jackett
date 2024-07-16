@@ -11,7 +11,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using Newtonsoft.Json;
 using NLog;
-using ServerConfig = Jackett.Common.Models.Config.ServerConfig;
+//using ServerConfig = Jackett.Common.Models.Config.ServerConfig;
 
 namespace Jackett.Common.Services
 {

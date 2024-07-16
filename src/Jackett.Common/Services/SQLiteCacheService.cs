@@ -10,7 +10,6 @@ using Jackett.Common.Services.Interfaces;
 using Microsoft.Data.Sqlite;
 using Newtonsoft.Json;
 using NLog;
-using ServerConfig = Jackett.Common.Models.Config.ServerConfig;
 
 namespace Jackett.Common.Services
 {
@@ -423,7 +422,7 @@ namespace Jackett.Common.Services
 
                     var command = connection.CreateCommand();
                     command.CommandText = @"
-                    SELECT ReleaseInfos.*, TrackerCaches.TrackerName, TrackerCaches.TrackerId, TrackerCaches.TrackerType
+                    SELECT ReleaseInfos.*, TrackerCaches.TrackerName, TrackerCaches.TrackerId, TrackerCaches.TrackerType, TrackerCacheQueries.Created
                     FROM ReleaseInfos
                     INNER JOIN TrackerCacheQueries ON ReleaseInfos.TrackerCacheQueryId = TrackerCacheQueries.Id
                     INNER JOIN TrackerCaches ON TrackerCacheQueries.TrackerCacheId = TrackerCaches.Id
@@ -536,7 +535,8 @@ namespace Jackett.Common.Services
                                             Origin = null // Restore Origin not required
                                         })
                                         {
-                                            TrackerId = reader["TrackerId"].ToString(),
+                                            FirstSeen = DateTime.Parse(reader["Created"].ToString()),
+                                        TrackerId = reader["TrackerId"].ToString(),
                                             Tracker = reader["TrackerName"].ToString(),
                                             TrackerType = reader["TrackerType"].ToString()
                                         });
