@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -31,11 +32,13 @@ namespace Jackett.Common.Services
 
         public void Initialize()
         {
-            using (var connection = new SqliteConnection("Data Source=" + _connectionString))
+            try
             {
-                connection.Open();
-                var command = connection.CreateCommand();
-                command.CommandText = @"
+                using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_connectionString)))
+                {
+                    connection.Open();
+                    var command = connection.CreateCommand();
+                    command.CommandText = @"
         CREATE TABLE IF NOT EXISTS TrackerCaches (
             Id INTEGER PRIMARY KEY AUTOINCREMENT,
             TrackerId TEXT,
@@ -94,7 +97,13 @@ namespace Jackett.Common.Services
             FOREIGN KEY(TrackerCacheQueryId) REFERENCES TrackerCacheQueries(Id)
         );
         ";
-                command.ExecuteNonQuery();
+                    command.ExecuteNonQuery();
+                }
+                _logger.Info($"Cache SQLite Initialized from: {GetConnectionString(_connectionString)}");
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e.Message);
             }
         }
 
@@ -107,7 +116,7 @@ namespace Jackett.Common.Services
             {
                 try
                 {
-                    using (var connection = new SqliteConnection("Data Source=" + _connectionString))
+                    using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_connectionString)))
                     {
                         connection.Open();
                         using (var transaction = connection.BeginTransaction())
@@ -129,10 +138,10 @@ namespace Jackett.Common.Services
                                 command.Parameters.AddWithValue("$publishDate", release.PublishDate);
                                 command.Parameters.AddWithValue(
                                     "$category", string.Join(",", release.Category ?? new List<int>()));
-                                command.Parameters.AddWithValue("$size", release.Size);
+                                command.Parameters.AddWithValue("$size", release.Size ?? (object)DBNull.Value);
                                 command.Parameters.AddWithValue("$files", release.Files ?? (object)DBNull.Value);
                                 command.Parameters.AddWithValue("$grabs", release.Grabs ?? (object)DBNull.Value);
-                                command.Parameters.AddWithValue("$description", release.Description);
+                                command.Parameters.AddWithValue("$description", release.Description ?? (object)DBNull.Value);
                                 command.Parameters.AddWithValue("$rageID", release.RageID ?? (object)DBNull.Value);
                                 command.Parameters.AddWithValue("$tvdbId", release.TVDBId ?? (object)DBNull.Value);
                                 command.Parameters.AddWithValue("$imdb", release.Imdb ?? (object)DBNull.Value);
@@ -233,7 +242,7 @@ namespace Jackett.Common.Services
 
             var queryHash = GetQueryHash(query);
 
-            using (var connection = new SqliteConnection("Data Source=" + _connectionString))
+            using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_connectionString)))
             {
                 connection.Open();
                 var command = connection.CreateCommand();
@@ -416,7 +425,7 @@ namespace Jackett.Common.Services
 
                 List<TrackerCacheResult> results = new List<TrackerCacheResult>();
 
-                using (var connection = new SqliteConnection("Data Source=" + _connectionString))
+                using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_connectionString)))
                 {
                     connection.Open();
 
@@ -560,7 +569,7 @@ namespace Jackett.Common.Services
 
             lock (_dbLock)
             {
-                using (var connection = new SqliteConnection("Data Source=" + _connectionString))
+                using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_connectionString)))
                 {
                     connection.Open();
                     var command = connection.CreateCommand();
@@ -591,7 +600,7 @@ namespace Jackett.Common.Services
 
             lock (_dbLock)
             {
-                using (var connection = new SqliteConnection("Data Source=" + _connectionString))
+                using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_connectionString)))
                 {
                     connection.Open();
                     var command = connection.CreateCommand();
@@ -611,7 +620,7 @@ namespace Jackett.Common.Services
         {
             lock (_dbLock)
             {
-                using (var connection = new SqliteConnection("Data Source=" + _connectionString))
+                using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_connectionString)))
                 {
                     connection.Open();
                     var expirationDate = DateTime.Now.AddSeconds(-_serverConfig.CacheTtl);
@@ -633,7 +642,7 @@ namespace Jackett.Common.Services
 
         private void PruneCacheByMaxResultsPerIndexer(string trackerId)
         {
-            using (var connection = new SqliteConnection("Data Source=" + _connectionString))
+            using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_connectionString)))
             {
                 connection.Open();
 
@@ -708,7 +717,7 @@ namespace Jackett.Common.Services
 
         private void PrintCacheStatus()
         {
-            using (var connection = new SqliteConnection("Data Source=" + _connectionString))
+            using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_connectionString)))
             {
                 connection.Open();
                 var command = connection.CreateCommand();
@@ -716,6 +725,15 @@ namespace Jackett.Common.Services
                 var totalCount = Convert.ToInt32(command.ExecuteScalar());
                 _logger.Debug($"CACHE STATUS / Total cache entries: {totalCount}");
             }
+        }
+
+        private string GetConnectionString(string connectionString)
+        {
+            if (!Path.IsPathRooted(connectionString))
+            {
+                connectionString = Path.Combine(_serverConfig.RuntimeSettings.DataFolder, connectionString);
+            }
+            return connectionString;
         }
     }
 }
