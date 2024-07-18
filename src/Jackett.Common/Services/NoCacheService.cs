@@ -3,11 +3,18 @@ using System.Collections.Generic;
 using Jackett.Common.Indexers;
 using Jackett.Common.Models;
 using Jackett.Common.Services.Interfaces;
+using NLog;
 
 namespace Jackett.Common.Services
 {
     public class NoCacheService : ICacheService
     {
+        private readonly Logger _logger;
+        public NoCacheService(Logger logger)
+        {
+            _logger = logger;
+        }
+
         public void CacheResults(IIndexer indexer, TorznabQuery query, List<ReleaseInfo> releases)
         {
             // No operation
@@ -36,5 +43,9 @@ namespace Jackett.Common.Services
         }
 
         public TimeSpan CacheTTL => TimeSpan.Zero; // No cache expiration
+        public void UpdateConnectionString(string connectionString)
+        {
+            _logger.Info("Cache Disabled");
+        }
     }
 }

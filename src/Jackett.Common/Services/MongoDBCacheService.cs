@@ -11,16 +11,15 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using Newtonsoft.Json;
 using NLog;
-//using ServerConfig = Jackett.Common.Models.Config.ServerConfig;
 
 namespace Jackett.Common.Services
 {
     public class MongoDBCacheService : ICacheService
     {
         private readonly Logger _logger;
-        private readonly string _connectionString;
+        private string _connectionString;
         private readonly ServerConfig _serverConfig;
-        private readonly IMongoDatabase _database;
+        private IMongoDatabase _database;
         private readonly SHA256Managed _sha256 = new SHA256Managed();
         private readonly object _dbLock = new object();
 
@@ -29,16 +28,25 @@ namespace Jackett.Common.Services
             _logger = logger;
             _connectionString = connectionString;
             _serverConfig = serverConfig;
+        }
+        public void UpdateConnectionString(string connectionString)
+        {
             try
             {
-                var client = new MongoClient("mongodb://" + _connectionString);
-                _database = client.GetDatabase("CacheDatabase");
+                lock (_dbLock)
+                {
+                    _connectionString = connectionString;
+                    var client = new MongoClient("mongodb://" + _connectionString);
+                    _database = client.GetDatabase("CacheDatabase");
+                }
+
                 Initialize();
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                _logger.Error(ex, "Failed to initialize MongoDB connection");
+                _logger.Error(e, "Failed UpdateConnectionString MongoDB");
             }
+            
         }
 
         public void Initialize()
@@ -46,6 +54,7 @@ namespace Jackett.Common.Services
             var trackerCaches = _database.GetCollection<BsonDocument>("TrackerCaches");
             var trackerCacheQueries = _database.GetCollection<BsonDocument>("TrackerCacheQueries");
             var releaseInfos = _database.GetCollection<BsonDocument>("ReleaseInfos");
+            _logger.Info($"Cache MongoDB Initialized from: mongodb://{_connectionString}");
         }
 
         public void CacheResults(IIndexer indexer, TorznabQuery query, List<ReleaseInfo> releases)
@@ -348,6 +357,7 @@ namespace Jackett.Common.Services
         }
 
         public TimeSpan CacheTTL => TimeSpan.FromSeconds(_serverConfig.CacheTtl);
+
 
         private string GetQueryHash(TorznabQuery query)
         {

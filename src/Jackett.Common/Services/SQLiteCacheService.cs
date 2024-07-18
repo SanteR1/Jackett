@@ -17,17 +17,24 @@ namespace Jackett.Common.Services
     public class SQLiteCacheService : ICacheService
     {
         private readonly Logger _logger;
-        private readonly string _connectionString;
+        private string _connectionString;
         private readonly ServerConfig _serverConfig;
         private readonly SHA256Managed _sha256 = new SHA256Managed();
         private readonly object _dbLock = new object();
 
+        public void UpdateConnectionString(string connectionString)
+        {
+            lock (_dbLock)
+            {
+                _connectionString = connectionString;
+            }
+            Initialize();
+        }
         public SQLiteCacheService(Logger logger, string connectionString, ServerConfig serverConfig)
         {
             _logger = logger;
             _connectionString = connectionString;
             _serverConfig = serverConfig;
-            Initialize();
         }
 
         public void Initialize()

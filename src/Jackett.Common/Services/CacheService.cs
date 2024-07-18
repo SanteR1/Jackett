@@ -7,7 +7,6 @@ using Jackett.Common.Indexers;
 using Jackett.Common.Models;
 using Jackett.Common.Models.Config;
 using Jackett.Common.Services.Interfaces;
-using Jackett.Common.Utils;
 using Newtonsoft.Json;
 using NLog;
 
@@ -43,6 +42,11 @@ namespace Jackett.Common.Services
         {
             _logger = logger;
             _serverConfig = serverConfig;
+        }
+
+        public void Initialize()
+        {
+
         }
 
         public void CacheResults(IIndexer indexer, TorznabQuery query, List<ReleaseInfo> releases)
@@ -177,6 +181,13 @@ namespace Jackett.Common.Services
         }
 
         public TimeSpan CacheTTL => TimeSpan.FromSeconds(_serverConfig.CacheTtl);
+        public void UpdateConnectionString(string connectionString)
+        {
+            lock (_cache)
+            {
+                _logger.Info("Cache Memory Initialized");
+            }
+        } 
 
         private bool IsCacheEnabled()
         {

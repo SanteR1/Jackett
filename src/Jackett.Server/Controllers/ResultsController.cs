@@ -12,6 +12,7 @@ using Jackett.Common.Indexers;
 using Jackett.Common.Indexers.Meta;
 using Jackett.Common.Models;
 using Jackett.Common.Models.DTO;
+using Jackett.Common.Services;
 using Jackett.Common.Services.Interfaces;
 using Jackett.Common.Utils;
 using Microsoft.AspNetCore.Authorization;
@@ -27,7 +28,7 @@ namespace Jackett.Server.Controllers
     public class RequiresApiKey : IActionFilter
     {
         public IServerService serverService;
-
+        
         public RequiresApiKey(IServerService ss) => serverService = ss;
 
         public void OnActionExecuting(ActionExecutingContext context)
@@ -175,6 +176,7 @@ namespace Jackett.Server.Controllers
         private readonly IServerService serverService;
         private readonly ICacheService cacheService;
         private readonly Common.Models.Config.ServerConfig serverConfig;
+        protected CacheManager CacheManager => CacheManagerProvider.CacheManager;
 
         public ResultsController(IIndexerManagerService indexerManagerService, IServerService ss, ICacheService c, Logger logger, Common.Models.Config.ServerConfig sConfig)
         {
@@ -320,7 +322,7 @@ namespace Jackett.Server.Controllers
 
             // Log info
             var indexersName = string.Join(", ", manualResult.Indexers.Select(i => i.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase));
-            var cacheStr = tasks.Where(t => t.Status == TaskStatus.RanToCompletion).Any(t => t.Result.IsFromCache) ? " (from cache)" : "";
+            var cacheStr = tasks.Where(t => t.Status == TaskStatus.RanToCompletion).Any(t => t.Result.IsFromCache) ? $" (from {serverConfig.CacheType})" : "";
 
             stopwatch.Stop();
 

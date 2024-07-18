@@ -16,16 +16,28 @@ namespace Jackett.Common.Services
 
         public ICacheService CreateCacheService(CacheType cacheType, string str)
         {
-            return cacheType switch
+            switch (cacheType)
             {
-                CacheType.Memory => _context.Resolve<CacheService>(),
-                CacheType.SqLite => _context.Resolve<SQLiteCacheService>(
-                    new TypedParameter(typeof(string), str)),
-                CacheType.MongoDb => _context.Resolve<MongoDBCacheService>(
-                    new TypedParameter(typeof(string), str)),
-                CacheType.Disabled => _context.Resolve<NoCacheService>(),
-                _ => throw new ArgumentOutOfRangeException(nameof(cacheType), cacheType, null)
-            };
+                case CacheType.Memory:
+                    var memoryCacheService = _context.Resolve<CacheService>();
+                    memoryCacheService.UpdateConnectionString(str);
+                    return memoryCacheService;
+                case CacheType.SqLite:
+                    var sqliteCacheService = _context.Resolve<SQLiteCacheService>();
+                    sqliteCacheService.UpdateConnectionString(str);
+                    return sqliteCacheService;
+                case CacheType.MongoDb:
+                    var mongoDbService = _context.Resolve<MongoDBCacheService>();
+                    var mongoDbConfigurable = mongoDbService as ICacheService;
+                    mongoDbConfigurable?.UpdateConnectionString(str);
+                    return mongoDbService;
+                case CacheType.Disabled:
+                    var noCacheService = _context.Resolve<NoCacheService>();
+                    noCacheService.UpdateConnectionString(str);
+                    return noCacheService;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(cacheType), cacheType, null);
+            }
         }
     }
 }
