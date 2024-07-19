@@ -6,7 +6,7 @@ namespace Jackett.Common.Models.Config
 {
     public enum CacheType
     {
-        Disabled = -1,
+        Disabled = 0,
         Memory,
         SqLite,
         MongoDb

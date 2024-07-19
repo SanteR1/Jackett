@@ -130,7 +130,7 @@ function loadJackettSettings() {
         $("#jackett-cache-connection-string").val(data.cache_connection_string);
         $("#jackett-cache-ttl").val(data.cache_ttl);
         $("#jackett-cache-max-results-per-indexer").val(data.cache_max_results_per_indexer);
-        if (data.cache_type == -1) {
+        if (data.cache_type == 0) {
             $("#jackett-show-releases").attr("disabled", true);
         }
 
@@ -138,22 +138,24 @@ function loadJackettSettings() {
         queryField.addEventListener("change", function (event) {
             var selectedValue = this.value;
             var element = document.getElementById("jackett-cache-connection-string");
-            if (selectedValue === "-1" || selectedValue === "0") {
+            if (selectedValue === "0" || selectedValue === "1") {
                 if (element) {                    
-                    element.setAttribute("placeholder", "Blank for default if Disable or Memory");
+                    element.setAttribute("placeholder", "Blank for default if Disabled or Memory");
                     element.value = "";
                 }
             }
             else {
-                if (selectedValue === "1") {
+                if (selectedValue === "2") {
                     if (element) {
                         element.setAttribute("placeholder", "for example base.db");
+                        element.value = "";
                     }
                 }
                 else {
-                    if (selectedValue === "2") {
+                    if (selectedValue === "3") {
                         if (element) {
                             element.setAttribute("placeholder", "for example localhost:27017");
+                            element.value = "";
                         }
                     }
                     else {
