@@ -104,7 +104,7 @@ namespace Jackett.Server
             builder.RegisterType<CacheServiceFactory>().AsSelf().SingleInstance();
             builder.RegisterType<CacheManager>().AsSelf().SingleInstance();
             builder.RegisterType<ServerConfigurationController>().AsSelf().InstancePerDependency();
-            
+
             builder.Register(ctx =>
             {
                 var logger = ctx.Resolve<Logger>();
