@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -125,7 +126,14 @@ namespace Jackett.Test.Common.Indexers
             {
                 basefile = Path.Combine(_serverConfig.RuntimeSettings.DataFolder, _serverConfig.CacheConnectionString);
             }
-            File.Delete(basefile);
+            try
+            {
+                File.Delete(basefile);
+            }
+            catch (Exception e)
+            {
+                // ignored
+            }
         }
     }
 }

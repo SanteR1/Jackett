@@ -116,7 +116,15 @@ namespace Jackett.Test.Common.Indexers
             {
                 basefile = Path.Combine(_serverConfig.RuntimeSettings.DataFolder, _serverConfig.CacheConnectionString);
             }
-            File.Delete(basefile);
+
+            try
+            {
+                File.Delete(basefile);
+            }
+            catch (Exception e)
+            {
+                // ignored
+            }
         }
     }
 }
