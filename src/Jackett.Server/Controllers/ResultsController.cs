@@ -12,7 +12,7 @@ using Jackett.Common.Indexers;
 using Jackett.Common.Indexers.Meta;
 using Jackett.Common.Models;
 using Jackett.Common.Models.DTO;
-using Jackett.Common.Services;
+using Jackett.Common.Services.Cache;
 using Jackett.Common.Services.Interfaces;
 using Jackett.Common.Utils;
 using Microsoft.AspNetCore.Authorization;
@@ -174,15 +174,15 @@ namespace Jackett.Server.Controllers
         public TorznabQuery CurrentQuery { get; set; }
         private readonly Logger logger;
         private readonly IServerService serverService;
-        private readonly ICacheService cacheService;
+        private readonly CacheManager cacheManager;
         private readonly Common.Models.Config.ServerConfig serverConfig;
-        protected CacheManager CacheManager => CacheManagerProvider.CacheManager;
+        //protected CacheManager CacheManager => CacheManagerProvider.CacheManager;
 
-        public ResultsController(IIndexerManagerService indexerManagerService, IServerService ss, ICacheService c, Logger logger, Common.Models.Config.ServerConfig sConfig)
+        public ResultsController(IIndexerManagerService indexerManagerService, IServerService ss, CacheManager cm, Logger logger, Common.Models.Config.ServerConfig sConfig)
         {
             IndexerService = indexerManagerService;
             serverService = ss;
-            cacheService = c;
+            cacheManager = cm;
             this.logger = logger;
             serverConfig = sConfig;
         }

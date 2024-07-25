@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Jackett.Common.Indexers;
 using Jackett.Common.Models;
-using Jackett.Common.Services;
+using Jackett.Common.Services.Cache;
 using Jackett.Common.Services.Interfaces;
 using Jackett.Common.Utils;
 using Microsoft.AspNetCore.Mvc;

@@ -6,7 +6,7 @@ using System.Net;
 using System.Threading;
 using Jackett.Common.Models;
 using Jackett.Common.Models.Config;
-using Jackett.Common.Services;
+using Jackett.Common.Services.Cache;
 using Jackett.Common.Services.Interfaces;
 using Jackett.Common.Utils;
 using Microsoft.AspNetCore.Mvc;
@@ -24,14 +24,13 @@ namespace Jackett.Server.Controllers
         private readonly IProcessService processService;
         private readonly IIndexerManagerService indexerService;
         private readonly ISecurityService securityService;
-        private readonly ICacheService cacheService;
         private readonly CacheManager _cacheManager;
         private readonly IUpdateService updater;
         private readonly ILogCacheService logCache;
         private readonly Logger logger;
 
         public ServerConfigurationController(IConfigurationService c, IServerService s, IProcessService p,
-            IIndexerManagerService i, ISecurityService ss, ICacheService cs, IUpdateService u, ILogCacheService lc,
+            IIndexerManagerService i, ISecurityService ss, IUpdateService u, ILogCacheService lc,
             Logger l, ServerConfig sc, CacheManager cacheManager)
         {
             configService = c;
@@ -40,7 +39,6 @@ namespace Jackett.Server.Controllers
             processService = p;
             indexerService = i;
             securityService = ss;
-            cacheService = cs;
             updater = u;
             logCache = lc;
             logger = l;
@@ -133,12 +131,12 @@ namespace Jackett.Server.Controllers
             serverConfig.BasePathOverride = basePathOverride;
             serverConfig.BaseUrlOverride = baseUrlOverride;
 
-            serverConfig.ConnectionString = cacheConString;
+            serverConfig.CacheConnectionString = cacheConString;
             serverConfig.CacheType = cacheType;
             serverConfig.CacheTtl = cacheTtl;
             serverConfig.CacheMaxResultsPerIndexer = cacheMaxResultsPerIndexer;
 
-            _cacheManager.ChangeCacheType(serverConfig.CacheType, serverConfig.ConnectionString);
+            _cacheManager.ChangeCacheType(serverConfig.CacheType, serverConfig.CacheConnectionString);
 
             serverConfig.RuntimeSettings.BasePath = serverService.BasePath();
             configService.SaveConfig(serverConfig);
@@ -189,7 +187,7 @@ namespace Jackett.Server.Controllers
                 webHostRestartNeeded = true;
 
                 // Remove all results from cache so we can test the new proxy
-                cacheService.CleanCache();
+                _cacheManager.CleanCache();
             }
 
             if (port != serverConfig.Port || external != serverConfig.AllowExternal || local_bind_address != serverConfig.LocalBindAddress)

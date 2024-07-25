@@ -3,7 +3,7 @@ using Autofac;
 using Jackett.Common.Models.Config;
 using Jackett.Common.Services.Interfaces;
 
-namespace Jackett.Common.Services
+namespace Jackett.Common.Services.Cache
 {
     public class CacheServiceFactory
     {
@@ -19,21 +19,21 @@ namespace Jackett.Common.Services
             switch (cacheType)
             {
                 case CacheType.Memory:
-                    var memoryCacheService = _context.Resolve<CacheService>();
-                    memoryCacheService.UpdateConnectionString(str);
+                    var memoryCacheService = _context.Resolve<MemoryCacheService>();
+                    memoryCacheService.UpdateCacheConnectionString(str);
                     return memoryCacheService;
                 case CacheType.SqLite:
                     var sqliteCacheService = _context.Resolve<SQLiteCacheService>();
-                    sqliteCacheService.UpdateConnectionString(str);
+                    sqliteCacheService.UpdateCacheConnectionString(str);
                     return sqliteCacheService;
                 case CacheType.MongoDb:
                     var mongoDbService = _context.Resolve<MongoDBCacheService>();
                     var mongoDbConfigurable = mongoDbService as ICacheService;
-                    mongoDbConfigurable?.UpdateConnectionString(str);
+                    mongoDbConfigurable?.UpdateCacheConnectionString(str);
                     return mongoDbService;
                 case CacheType.Disabled:
                     var noCacheService = _context.Resolve<NoCacheService>();
-                    noCacheService.UpdateConnectionString(str);
+                    noCacheService.UpdateCacheConnectionString(str);
                     return noCacheService;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(cacheType), cacheType, null);

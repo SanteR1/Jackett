@@ -148,14 +148,14 @@ function loadJackettSettings() {
                 if (selectedValue === "2") {
                     if (element) {
                         element.setAttribute("placeholder", "for example base.db");
-                        element.value = "";
+                        element.value = "";                        
                     }
                 }
                 else {
                     if (selectedValue === "3") {
                         if (element) {
                             element.setAttribute("placeholder", "for example localhost:27017");
-                            element.value = "";
+                            element.value = "";                            
                         }
                     }
                     else {

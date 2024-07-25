@@ -11,29 +11,22 @@ using Jackett.Common.Services.Interfaces;
 using Microsoft.Data.Sqlite;
 using Newtonsoft.Json;
 using NLog;
+using ZstdSharp;
 
-namespace Jackett.Common.Services
+namespace Jackett.Common.Services.Cache
 {
     public class SQLiteCacheService : ICacheService
     {
         private readonly Logger _logger;
-        private string _connectionString;
+        private string _cacheconnectionString;
         private readonly ServerConfig _serverConfig;
         private readonly SHA256Managed _sha256 = new SHA256Managed();
         private readonly object _dbLock = new object();
 
-        public void UpdateConnectionString(string connectionString)
-        {
-            lock (_dbLock)
-            {
-                _connectionString = connectionString;
-            }
-            Initialize();
-        }
-        public SQLiteCacheService(Logger logger, string connectionString, ServerConfig serverConfig)
+        public SQLiteCacheService(Logger logger, string cacheconnectionString, ServerConfig serverConfig)
         {
             _logger = logger;
-            _connectionString = connectionString;
+            _cacheconnectionString = cacheconnectionString;
             _serverConfig = serverConfig;
         }
 
@@ -41,7 +34,7 @@ namespace Jackett.Common.Services
         {
             try
             {
-                using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_connectionString)))
+                using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_cacheconnectionString)))
                 {
                     connection.Open();
                     var command = connection.CreateCommand();
@@ -106,11 +99,11 @@ namespace Jackett.Common.Services
         ";
                     command.ExecuteNonQuery();
                 }
-                _logger.Info($"Cache SQLite Initialized from: {GetConnectionString(_connectionString)}");
+                _logger.Info("Cache SQLite Initialized");
             }
             catch (Exception e)
             {
-                _logger.Error(e.Message);
+                _logger.Error("Cache SQLite Initialize error: {0}", e.Message);
             }
         }
 
@@ -123,7 +116,7 @@ namespace Jackett.Common.Services
             {
                 try
                 {
-                    using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_connectionString)))
+                    using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_cacheconnectionString)))
                     {
                         connection.Open();
                         using (var transaction = connection.BeginTransaction())
@@ -198,7 +191,7 @@ namespace Jackett.Common.Services
                 }
                 catch (Exception e)
                 {
-                    _logger.Error($"CacheResults adds parameter to the collections, {e.Message}");
+                    _logger.Error("CacheResults adds parameter to the collections, {0}", e.Message);
                 }
             }
         }
@@ -249,7 +242,7 @@ namespace Jackett.Common.Services
 
             var queryHash = GetQueryHash(query);
 
-            using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_connectionString)))
+            using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_cacheconnectionString)))
             {
                 connection.Open();
                 var command = connection.CreateCommand();
@@ -407,13 +400,13 @@ namespace Jackett.Common.Services
                     }
                     catch (Exception e)
                     {
-                        _logger.Error($"Search adds parameter to the collections, {e.Message}");
+                        _logger.Error("Search adds parameter to the collections, {0}", e.Message);
                     }
                 }
 
                 if (results.Count > 0)
                 {
-                    _logger.Debug($"CACHE Search Hit / Indexer: {indexer.Id} / Found: {results.Count} releases");
+                    _logger.Debug("CACHE Search Hit / Indexer: {0} / Found: {1} releases", indexer.Id, results.Count);
                     return results;
                 }
             }
@@ -432,7 +425,7 @@ namespace Jackett.Common.Services
 
                 List<TrackerCacheResult> results = new List<TrackerCacheResult>();
 
-                using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_connectionString)))
+                using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_cacheconnectionString)))
                 {
                     connection.Open();
 
@@ -559,7 +552,7 @@ namespace Jackett.Common.Services
                             }
                             catch (Exception e)
                             {
-                                _logger.Error($"GetCachedResults adds parameter to the collections, {e.Message}");
+                                _logger.Error("GetCachedResults adds parameter to the collections, {0}", e.Message);
                             }
                         }
                     }
@@ -576,7 +569,7 @@ namespace Jackett.Common.Services
 
             lock (_dbLock)
             {
-                using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_connectionString)))
+                using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_cacheconnectionString)))
                 {
                     connection.Open();
                     var command = connection.CreateCommand();
@@ -594,7 +587,7 @@ namespace Jackett.Common.Services
                     command.ExecuteNonQuery();
                 }
 
-                _logger.Debug($"CACHE CleanIndexerCache / Indexer: {indexer.Id}");
+                _logger.Debug("CACHE CleanIndexerCache / Indexer: {0}", indexer.Id);
 
                 PruneCacheByTtl(); // remove expired results
             }
@@ -607,7 +600,7 @@ namespace Jackett.Common.Services
 
             lock (_dbLock)
             {
-                using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_connectionString)))
+                using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_cacheconnectionString)))
                 {
                     connection.Open();
                     var command = connection.CreateCommand();
@@ -627,7 +620,7 @@ namespace Jackett.Common.Services
         {
             lock (_dbLock)
             {
-                using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_connectionString)))
+                using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_cacheconnectionString)))
                 {
                     connection.Open();
                     var expirationDate = DateTime.Now.AddSeconds(-_serverConfig.CacheTtl);
@@ -641,7 +634,7 @@ namespace Jackett.Common.Services
 
                     var prunedCounter = command.ExecuteNonQuery();
 
-                    _logger.Debug($"CACHE PruneCacheByTtl / Pruned queries: {prunedCounter}");
+                    _logger.Debug("CACHE PruneCacheByTtl / Pruned queries: {0}", prunedCounter);
                     PrintCacheStatus();
                 }
             }
@@ -649,7 +642,7 @@ namespace Jackett.Common.Services
 
         private void PruneCacheByMaxResultsPerIndexer(string trackerId)
         {
-            using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_connectionString)))
+            using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_cacheconnectionString)))
             {
                 connection.Open();
 
@@ -699,14 +692,25 @@ namespace Jackett.Common.Services
 
                 if (_logger.IsDebugEnabled)
                 {
-                    _logger.Debug($"CACHE PruneCacheByMaxResultsPerIndexer / Indexer: {trackerId} / Pruned queries: {prunedCounter}");
+                    _logger.Debug("CACHE PruneCacheByMaxResultsPerIndexer / Indexer: {0} / Pruned queries: {1}", trackerId, prunedCounter);
                     PrintCacheStatus();
                 }
             }
         }
 
         public TimeSpan CacheTTL => TimeSpan.FromSeconds(_serverConfig.CacheTtl);
+        public void UpdateCacheConnectionString(string cacheconnectionString)
+        {
+            lock (_dbLock)
+            {
+                if (string.IsNullOrEmpty(cacheconnectionString))
+                    throw new ArgumentNullException("Cache Connection String: Is Empty");
 
+                _cacheconnectionString = cacheconnectionString;
+                Initialize();
+            }
+            
+        }
         private string GetQueryHash(TorznabQuery query)
         {
 
@@ -724,23 +728,23 @@ namespace Jackett.Common.Services
 
         private void PrintCacheStatus()
         {
-            using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_connectionString)))
+            using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_cacheconnectionString)))
             {
                 connection.Open();
                 var command = connection.CreateCommand();
                 command.CommandText = "SELECT COUNT(*) FROM ReleaseInfos";
                 var totalCount = Convert.ToInt32(command.ExecuteScalar());
-                _logger.Debug($"CACHE STATUS / Total cache entries: {totalCount}");
+                _logger.Debug("CACHE STATUS / Total cache entries: {0}", totalCount);
             }
         }
 
-        private string GetConnectionString(string connectionString)
+        private string GetConnectionString(string cacheconnectionString)
         {
-            if (!Path.IsPathRooted(connectionString))
+            if (!Path.IsPathRooted(cacheconnectionString))
             {
-                connectionString = Path.Combine(_serverConfig.RuntimeSettings.DataFolder, connectionString);
+                cacheconnectionString = Path.Combine(_serverConfig.RuntimeSettings.DataFolder, cacheconnectionString);
             }
-            return connectionString;
+            return cacheconnectionString;
         }
     }
 }

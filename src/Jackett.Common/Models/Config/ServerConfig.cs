@@ -45,7 +45,7 @@ namespace Jackett.Common.Models.Config
         public string BasePathOverride { get; set; }
         public string BaseUrlOverride { get; set; }
         public CacheType CacheType { get; set; }
-        public string ConnectionString { get; set; }
+        public string CacheConnectionString { get; set; }
         public long CacheTtl { get; set; }
         public long CacheMaxResultsPerIndexer { get; set; }
         public string FlareSolverrUrl { get; set; }

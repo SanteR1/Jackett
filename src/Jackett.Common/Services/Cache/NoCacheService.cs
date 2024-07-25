@@ -5,7 +5,7 @@ using Jackett.Common.Models;
 using Jackett.Common.Services.Interfaces;
 using NLog;
 
-namespace Jackett.Common.Services
+namespace Jackett.Common.Services.Cache
 {
     public class NoCacheService : ICacheService
     {
@@ -43,7 +43,7 @@ namespace Jackett.Common.Services
         }
 
         public TimeSpan CacheTTL => TimeSpan.Zero; // No cache expiration
-        public void UpdateConnectionString(string connectionString)
+        public void UpdateCacheConnectionString(string cacheconnectionString)
         {
             _logger.Info("Cache Disabled");
         }

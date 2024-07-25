@@ -7,6 +7,7 @@ using Autofac.Extensions.DependencyInjection;
 using Jackett.Common.Models.Config;
 using Jackett.Common.Plumbing;
 using Jackett.Common.Services;
+using Jackett.Common.Services.Cache;
 using Jackett.Common.Services.Interfaces;
 using Jackett.Server.Controllers;
 using Jackett.Server.Middleware;
@@ -98,7 +99,8 @@ namespace Jackett.Server
             builder.RegisterType<ServiceConfigService>().As<IServiceConfigService>().SingleInstance();
             builder.RegisterType<FilePermissionService>().As<IFilePermissionService>().SingleInstance();
 
-            builder.RegisterType<CacheService>().AsSelf().SingleInstance();
+            builder.RegisterType<MemoryCacheService>().AsSelf().SingleInstance();
+            builder.RegisterType<SQLiteCacheService>().AsSelf().SingleInstance();
             builder.RegisterType<MongoDBCacheService>().AsSelf().SingleInstance();
             builder.RegisterType<NoCacheService>().AsSelf().SingleInstance();
             builder.RegisterType<CacheServiceFactory>().AsSelf().SingleInstance();
@@ -109,14 +111,14 @@ namespace Jackett.Server
             {
                 var logger = ctx.Resolve<Logger>();
                 var serverConfig = ctx.Resolve<ServerConfig>();
-                return new SQLiteCacheService(logger, serverConfig.ConnectionString, serverConfig);
+                return new SQLiteCacheService(logger, serverConfig.CacheConnectionString, serverConfig);
             }).AsSelf().SingleInstance();
 
             builder.Register(ctx =>
             {
                 var logger = ctx.Resolve<Logger>();
                 var serverConfig = ctx.Resolve<ServerConfig>();
-                return new MongoDBCacheService(logger, serverConfig.ConnectionString, serverConfig);
+                return new MongoDBCacheService(logger, serverConfig.CacheConnectionString, serverConfig);
             }).AsSelf().SingleInstance();
 
             builder.Register(ctx =>
@@ -124,12 +126,19 @@ namespace Jackett.Server
                 var logger = ctx.Resolve<Logger>();
                 return new NoCacheService(logger);
             }).AsSelf().SingleInstance();
-
+            /**/
+            builder.Register(ctx =>
+            {
+                var logger = ctx.Resolve<Logger>();
+                var serverConfig = ctx.Resolve<ServerConfig>();
+                return new MemoryCacheService(logger, serverConfig);
+            }).AsSelf().SingleInstance();
+            /**/
             builder.Register<ICacheService>(ctx =>
             {
                 var factory = ctx.Resolve<CacheServiceFactory>();
                 var config = ctx.Resolve<ServerConfig>();
-                return factory.CreateCacheService(config.CacheType, config.ConnectionString);
+                return factory.CreateCacheService(config.CacheType, config.CacheConnectionString);
             }).SingleInstance();
 
             var container = builder.Build();

@@ -8,7 +8,7 @@ using Jackett.Common.Models.Config;
 using Jackett.Common.Services.Interfaces;
 using Microsoft.Extensions.Options;
 
-namespace Jackett.Common.Services
+namespace Jackett.Common.Services.Cache
 {
     public class CacheManager
     {
@@ -18,7 +18,7 @@ namespace Jackett.Common.Services
         public CacheManager(CacheServiceFactory factory, ServerConfig serverConfig)
         {
             _factory = factory;
-            _cacheService = factory.CreateCacheService(serverConfig.CacheType, serverConfig.ConnectionString);
+            _cacheService = factory.CreateCacheService(serverConfig.CacheType, serverConfig.CacheConnectionString);
         }
 
         public ICacheService CurrentCacheService => _cacheService;
@@ -30,7 +30,7 @@ namespace Jackett.Common.Services
 
         public void ChangeCacheType(CacheType newCacheType, string str)
         {
-            if (CurrentCacheService is CacheService && newCacheType != CacheType.Memory)
+            if (CurrentCacheService is MemoryCacheService && newCacheType != CacheType.Memory)
             {
                 CurrentCacheService.CleanCache();
             }

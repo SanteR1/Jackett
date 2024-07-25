@@ -12,49 +12,30 @@ using MongoDB.Driver;
 using Newtonsoft.Json;
 using NLog;
 
-namespace Jackett.Common.Services
+namespace Jackett.Common.Services.Cache
 {
     public class MongoDBCacheService : ICacheService
     {
         private readonly Logger _logger;
-        private string _connectionString;
+        private string _cacheconnectionString;
         private readonly ServerConfig _serverConfig;
         private IMongoDatabase _database;
         private readonly SHA256Managed _sha256 = new SHA256Managed();
         private readonly object _dbLock = new object();
 
-        public MongoDBCacheService(Logger logger, string connectionString, ServerConfig serverConfig)
+        public MongoDBCacheService(Logger logger, string cacheconnectionString, ServerConfig serverConfig)
         {
             _logger = logger;
-            _connectionString = connectionString;
+            _cacheconnectionString = cacheconnectionString;
             _serverConfig = serverConfig;
         }
-        public void UpdateConnectionString(string connectionString)
-        {
-            try
-            {
-                lock (_dbLock)
-                {
-                    _connectionString = connectionString;
-                    var client = new MongoClient("mongodb://" + _connectionString);
-                    _database = client.GetDatabase("CacheDatabase");
-                }
-
-                Initialize();
-            }
-            catch (Exception e)
-            {
-                _logger.Error(e, "Failed UpdateConnectionString MongoDB");
-            }
-
-        }
-
+        
         public void Initialize()
         {
             var trackerCaches = _database.GetCollection<BsonDocument>("TrackerCaches");
             var trackerCacheQueries = _database.GetCollection<BsonDocument>("TrackerCacheQueries");
             var releaseInfos = _database.GetCollection<BsonDocument>("ReleaseInfos");
-            _logger.Info($"Cache MongoDB Initialized from: mongodb://{_connectionString}");
+            _logger.Info("Cache MongoDB Initialized");
         }
 
         public void CacheResults(IIndexer indexer, TorznabQuery query, List<ReleaseInfo> releases)
@@ -116,13 +97,13 @@ namespace Jackett.Common.Services
                         };
                         releaseInfosCollection.InsertOne(document);
                     }
-                    _logger.Debug($"CACHE CacheResults / Indexer: {indexer.Id} / Added: {releases.Count} releases");
+                    _logger.Debug("CACHE CacheResults / Indexer: {0} / Added: {1} releases", indexer.Id, releases.Count);
 
                     PruneCacheByMaxResultsPerIndexer(indexer.Id); // remove old results if we exceed the maximum limit
                 }
                 catch (Exception e)
                 {
-                    _logger.Error(e, $"Failed CacheResults in indexer {indexer}");
+                    _logger.Error(e, "Failed CacheResults in indexer {0}", indexer);
                 }
             }
         }
@@ -177,7 +158,7 @@ namespace Jackett.Common.Services
                                       .ToList();
             if (results.Count > 0)
             {
-                _logger.Debug($"CACHE Search Hit / Indexer: {indexer.Id} / Found: {results.Count} releases");
+                _logger.Debug("CACHE Search Hit / Indexer: {0} / Found: {1} releases", indexer.Id, results.Count);
                 return results.Select(ConvertBsonToReleaseInfo).ToList();
             }
             return null;
@@ -245,7 +226,7 @@ namespace Jackett.Common.Services
                                       .Lookup("TrackerCaches", "TrackerCacheQuery.TrackerCacheId", "_id", "TrackerCache")
                                       .Unwind("TrackerCache").SortByDescending(doc => doc["PublishDate"]).Limit(_serverConfig.CacheMaxResultsPerIndexer)
                                       .ToList();
-            _logger.Debug($"CACHE GetCachedResults / Results: {results.Count} (cache may contain more results)");
+            _logger.Debug("CACHE GetCachedResults / Results: {0} (cache may contain more results)", results.Count);
             PrintCacheStatus();
 
             return results.Select(doc =>
@@ -321,7 +302,7 @@ namespace Jackett.Common.Services
 
             if (!trackerCachesDocs.Any())
             {
-                _logger.Debug($"No TrackerCaches documents found for indexer {indexer.Id}, skipping cache cleaning.");
+                _logger.Debug("No TrackerCaches documents found for indexer {0}, skipping cache cleaning.", indexer.Id);
                 return;
             }
 
@@ -334,16 +315,16 @@ namespace Jackett.Common.Services
                 var trackerCacheQueryIds = trackerCacheQueriesDocs.Select(doc => doc["_id"].AsObjectId).ToList();
                 var releaseInfosFilter = Builders<BsonDocument>.Filter.In("TrackerCacheQueryId", trackerCacheQueryIds);
                 var deleteReleaseInfosResult = releaseInfosCollection.DeleteMany(releaseInfosFilter);
-                _logger.Debug($"Deleted {deleteReleaseInfosResult.DeletedCount} documents from ReleaseInfos for indexer {indexer.Id}");
+                _logger.Debug("Deleted {0} documents from ReleaseInfos for indexer {1}", deleteReleaseInfosResult.DeletedCount, indexer.Id);
                 var deleteTrackerCacheQueriesResult = trackerCacheQueriesCollection.DeleteMany(trackerCacheQueriesFilter);
-                _logger.Debug($"Deleted {deleteTrackerCacheQueriesResult.DeletedCount} documents from TrackerCacheQueries for indexer {indexer.Id}");
+                _logger.Debug("Deleted {0} documents from TrackerCacheQueries for indexer {1}", deleteTrackerCacheQueriesResult.DeletedCount, indexer.Id);
             }
             else
             {
-                _logger.Debug($"No TrackerCacheQueries documents found for TrackerCaches of indexer {indexer.Id}");
+                _logger.Debug("No TrackerCacheQueries documents found for TrackerCaches of indexer {0}", indexer.Id);
             }
             var deleteTrackerCachesResult = trackerCachesCollection.DeleteMany(trackerCachesFilter);
-            _logger.Debug($"Deleted {deleteTrackerCachesResult.DeletedCount} documents from TrackerCaches for indexer {indexer.Id}");
+            _logger.Debug("Deleted {0} documents from TrackerCaches for indexer {1}", deleteTrackerCachesResult.DeletedCount, indexer.Id);
         }
 
         public void CleanCache()
@@ -358,6 +339,25 @@ namespace Jackett.Common.Services
 
         public TimeSpan CacheTTL => TimeSpan.FromSeconds(_serverConfig.CacheTtl);
 
+        public void UpdateCacheConnectionString(string cacheconnectionString)
+        {
+            try
+            {
+                lock (_dbLock)
+                {
+                    _cacheconnectionString = cacheconnectionString;
+                    var client = new MongoClient("mongodb://" + _cacheconnectionString);
+                    _database = client.GetDatabase("CacheDatabase");
+                }
+
+                Initialize();
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, "Failed UpdateCacheConnectionString MongoDB");
+            }
+
+        }
 
         private string GetQueryHash(TorznabQuery query)
         {
@@ -405,9 +405,9 @@ namespace Jackett.Common.Services
                 var deleteResult3 = trackerCacheQueriesCollection.DeleteMany(trackerCacheQueryFilter);
                 if (_logger.IsDebugEnabled)
                 {
-                    _logger.Debug($"Pruned {deleteResult1.DeletedCount} documents from ReleaseInfos");
-                    _logger.Debug($"Pruned {deleteResult2.DeletedCount} documents from TrackerCaches");
-                    _logger.Debug($"Pruned {deleteResult3.DeletedCount} documents from TrackerCacheQueries");
+                    _logger.Debug("Pruned {0} documents from ReleaseInfos", deleteResult1.DeletedCount);
+                    _logger.Debug("Pruned {0} documents from TrackerCaches", deleteResult2.DeletedCount);
+                    _logger.Debug("Pruned {0} documents from TrackerCacheQueries", deleteResult3.DeletedCount);
                     PrintCacheStatus();
                 }
             }
@@ -423,7 +423,7 @@ namespace Jackett.Common.Services
 
             if (!trackerCaches.Any())
             {
-                _logger.Debug($"No TrackerCaches documents found for tracker {trackerId}");
+                _logger.Debug("No TrackerCaches documents found for tracker {0}", trackerId);
                 return;
             }
             var trackerCacheIds = trackerCaches.Select(tc => tc["_id"].AsObjectId).ToList();
@@ -432,7 +432,7 @@ namespace Jackett.Common.Services
 
             if (!trackerCacheQueries.Any())
             {
-                _logger.Debug($"No TrackerCacheQueries documents found for TrackerId {trackerId}");
+                _logger.Debug("No TrackerCacheQueries documents found for TrackerId {0}", trackerId);
                 return;
             }
             var trackerCacheQueryIds = trackerCacheQueries.Select(tcq => tcq["_id"].AsObjectId).ToList();
@@ -443,7 +443,7 @@ namespace Jackett.Common.Services
 
             if (totalResultsCount <= _serverConfig.CacheMaxResultsPerIndexer)
             {
-                _logger.Debug($"Total results count {totalResultsCount} is within the limit {_serverConfig.CacheMaxResultsPerIndexer}");
+                _logger.Debug("Total results count {0} is within the limit {1}", totalResultsCount, _serverConfig.CacheMaxResultsPerIndexer);
                 return;
             }
             var prunedCounter = 0;
@@ -460,7 +460,7 @@ namespace Jackett.Common.Services
             }
             if (_logger.IsDebugEnabled)
             {
-                _logger.Debug($"CACHE PruneCacheByMaxResultsPerIndexer / Tracker: {trackerId} / Pruned release infos: {prunedCounter}");
+                _logger.Debug("CACHE PruneCacheByMaxResultsPerIndexer / Tracker: {0} / Pruned release infos: {1}", trackerId, prunedCounter);
                 PrintCacheStatus();
             }
         }
@@ -469,7 +469,7 @@ namespace Jackett.Common.Services
         {
             var releaseInfosCollection = _database.GetCollection<BsonDocument>("ReleaseInfos");
             var releaseInfosCount = releaseInfosCollection.CountDocuments(Builders<BsonDocument>.Filter.Empty);
-            _logger.Info($"CACHE Status / Total cached results:: {releaseInfosCount} documents");
+            _logger.Info("CACHE Status / Total cached results: {0} documents", releaseInfosCount);
         }
     }
 }

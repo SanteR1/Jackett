@@ -1,7 +1,13 @@
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Autofac;
 using Jackett.Common.Indexers.Definitions;
 using Jackett.Common.Models;
+using Jackett.Common.Models.Config;
+using Jackett.Common.Services.Cache;
+using Jackett.Common.Services.Interfaces;
+using Jackett.Server.Controllers;
 using Jackett.Test.TestHelpers;
 using NLog;
 using NUnit.Framework;
@@ -16,19 +22,49 @@ using YamlDotNet.Serialization.NamingConventions;
 namespace Jackett.Test.Common.Indexers
 {
     [TestFixture]
-    public class CardigannIndexerJsonTests
+    public class CardigannIndexerJsonWithSQLiteTests
     {
         private readonly TestWebClient _webClient = new TestWebClient();
         private readonly Logger _logger = LogManager.GetCurrentClassLogger();
-        private readonly TestCacheService _cacheService = new TestCacheService();
+        private IContainer _container;
+        private ServerConfig _serverConfig;
+
+        [SetUp]
+        public void Setup()
+        {
+            var builder = new ContainerBuilder();
+            builder.RegisterType<SQLiteCacheService>().AsSelf().SingleInstance();
+            builder.RegisterType<CacheServiceFactory>().AsSelf().SingleInstance();
+            builder.RegisterType<CacheManager>().AsSelf().SingleInstance();
+            builder.RegisterType<ServerConfigurationController>().AsSelf().InstancePerDependency();
+            builder.RegisterType<ServerConfig>().AsSelf().SingleInstance();
+
+            builder.Register(ctx =>
+            {
+                var logger = _logger;
+                var serverConfig = new ServerConfig(new RuntimeSettings()) { CacheType = CacheType.SqLite };
+                return new SQLiteCacheService(logger, serverConfig.CacheConnectionString, serverConfig);
+            }).AsSelf().SingleInstance();
+            _container = builder.Build();
+        }
+
 
         [Test]
-        public async Task TestCardigannJsonAsync()
+        public async Task TestCardigannJsonWithSQLiteCacheAsync()
         {
+            var cacheServiceFactory = _container.Resolve<CacheServiceFactory>();
+            _serverConfig =
+                new ServerConfig(new RuntimeSettings()) { CacheType = CacheType.SqLite, CacheConnectionString = "testjson.db" };
+
+            DeleteTestBaseFile();
+
+            var cacheManager = new CacheManager(cacheServiceFactory, _serverConfig);
+
             _webClient.RegisterRequestCallback("https://jsondefinition1.com/api/torrents/filter?api_token=&name=1080p&sortField=created_at&sortDirection=desc&perPage=100&page=1",
                                                "json-response1.json");
             var definition = LoadTestDefinition("json-definition1.yml");
-            var indexer = new CardigannIndexer(null, _webClient, _logger, null, _cacheService, definition);
+
+            var indexer = new CardigannIndexer(null, _webClient, _logger, null, cacheManager, definition);
 
             var query = new TorznabQuery
             {
@@ -38,6 +74,9 @@ namespace Jackett.Test.Common.Indexers
 
             var result = await indexer.ResultsForQuery(query, false);
             Assert.AreEqual(false, result.IsFromCache);
+
+            result = await indexer.ResultsForQuery(query, false);
+            Assert.AreEqual(true, result.IsFromCache);
 
             var releases = result.Releases.ToList();
             Assert.AreEqual(78, releases.Count);
@@ -77,6 +116,16 @@ namespace Jackett.Test.Common.Indexers
                                .WithNamingConvention(CamelCaseNamingConvention.Instance)
                                .Build();
             return deserializer.Deserialize<IndexerDefinition>(definitionString);
+        }
+
+        private void DeleteTestBaseFile()
+        {
+            var basefile = _serverConfig.CacheConnectionString;
+            if (!Path.IsPathRooted(basefile))
+            {
+                basefile = Path.Combine(_serverConfig.RuntimeSettings.DataFolder, _serverConfig.CacheConnectionString);
+            }
+            File.Delete(basefile);
         }
     }
 }

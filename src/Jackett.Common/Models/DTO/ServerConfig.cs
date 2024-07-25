@@ -88,7 +88,7 @@ namespace Jackett.Common.Models.DTO
             basepathoverride = config.BasePathOverride;
             baseurloverride = config.BaseUrlOverride;
             cache_type = config.CacheType;
-            cache_connection_string = config.ConnectionString;
+            cache_connection_string = config.CacheConnectionString;
             cache_ttl = config.CacheTtl;
             cache_max_results_per_indexer = config.CacheMaxResultsPerIndexer;
             flaresolverrurl = config.FlareSolverrUrl;

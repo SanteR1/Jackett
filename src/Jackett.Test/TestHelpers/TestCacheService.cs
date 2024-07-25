@@ -26,7 +26,7 @@ namespace Jackett.Test.TestHelpers
 
         public TimeSpan CacheTTL => TimeSpan.FromSeconds(0);
 
-        public void UpdateConnectionString(string connectionString)
+        public void UpdateCacheConnectionString(string connectionString)
         {
 
         }
