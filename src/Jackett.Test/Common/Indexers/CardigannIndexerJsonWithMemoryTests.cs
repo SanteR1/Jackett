@@ -72,7 +72,7 @@ namespace Jackett.Test.Common.Indexers
 
             var result = await indexer.ResultsForQuery(query, false);
             Assert.AreEqual(false, result.IsFromCache);
-            
+
             var releases = result.Releases.ToList();
             Assert.AreEqual(78, releases.Count);
 

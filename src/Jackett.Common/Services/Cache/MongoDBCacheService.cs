@@ -29,7 +29,7 @@ namespace Jackett.Common.Services.Cache
             _cacheconnectionString = cacheconnectionString;
             _serverConfig = serverConfig;
         }
-        
+
         public void Initialize()
         {
             var trackerCaches = _database.GetCollection<BsonDocument>("TrackerCaches");

@@ -709,7 +709,7 @@ namespace Jackett.Common.Services.Cache
                 _cacheconnectionString = cacheconnectionString;
                 Initialize();
             }
-            
+
         }
         private string GetQueryHash(TorznabQuery query)
         {

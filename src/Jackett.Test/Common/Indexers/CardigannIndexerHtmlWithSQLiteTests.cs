@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Autofac;
@@ -6,13 +7,12 @@ using Jackett.Common.Indexers.Definitions;
 using Jackett.Common.Models;
 using Jackett.Common.Models.Config;
 using Jackett.Common.Services.Cache;
+using Jackett.Server.Controllers;
 using Jackett.Test.TestHelpers;
 using NLog;
 using NUnit.Framework;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
-using Jackett.Server.Controllers;
-using System.IO;
 
 // todo: add all fields from the search block (poster, imdbid, ...)
 // todo: add definition with post
@@ -99,7 +99,7 @@ namespace Jackett.Test.Common.Indexers
             Assert.AreEqual(2, firstRelease.UploadVolumeFactor);
             Assert.AreEqual(23.4375, firstRelease.Gain);
         }
-        
+
         private static IndexerDefinition LoadTestDefinition(string fileName)
         {
             var definitionString = TestUtil.LoadTestFile(fileName);
