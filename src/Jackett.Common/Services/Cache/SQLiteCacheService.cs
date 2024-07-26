@@ -743,11 +743,11 @@ namespace Jackett.Common.Services.Cache
 
         private string GetConnectionString(string cacheconnectionString)
         {
-            var workspace = Environment.GetEnvironmentVariable("GITHUB_WORKSPACE");
+            var workspace = Directory.GetCurrentDirectory();//Environment.GetEnvironmentVariable("GITHUB_WORKSPACE");
             if (!string.IsNullOrEmpty(workspace))
             {
                 Console.WriteLine($@"GetConnectionString workspace: {workspace}");
-                cacheconnectionString = Path.Combine(workspace, "Jackett.Test", cacheconnectionString);
+                cacheconnectionString = Path.Combine(workspace, cacheconnectionString);
                 Console.WriteLine($@"GetConnectionString workspace Database file path: {cacheconnectionString}");
                 return cacheconnectionString;
             }

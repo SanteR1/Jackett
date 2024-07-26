@@ -119,11 +119,11 @@ namespace Jackett.Test.Common.Indexers
         private void DeleteTestBaseFile()
         {
             var cacheconnectionString = _serverConfig.CacheConnectionString;
-            var workspace = Environment.GetEnvironmentVariable("GITHUB_WORKSPACE");
+            var workspace = Directory.GetCurrentDirectory();//Environment.GetEnvironmentVariable("GITHUB_WORKSPACE");
             if (!string.IsNullOrEmpty(workspace))
             {
                 Console.WriteLine($@"DeleteTestBaseFile workspace: {workspace}");
-                cacheconnectionString = Path.Combine(workspace, "Jackett.Test", cacheconnectionString);
+                cacheconnectionString = Path.Combine(workspace, cacheconnectionString);
                 Console.WriteLine($@"DeleteTestBaseFile workspace Database file path: {cacheconnectionString}");
             }
             else if (!Path.IsPathRooted(cacheconnectionString))
