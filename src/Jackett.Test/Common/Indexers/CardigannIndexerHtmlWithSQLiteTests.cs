@@ -54,7 +54,6 @@ namespace Jackett.Test.Common.Indexers
         public async Task TestCardigannHtmlWithSQLiteCacheAsync()
         {
             var cacheServiceFactory = _container.Resolve<CacheServiceFactory>();
-
             DeleteTestBaseFile();
 
             var cacheManager = new CacheManager(cacheServiceFactory, _serverConfig);
@@ -109,22 +108,26 @@ namespace Jackett.Test.Common.Indexers
 
         private void DeleteTestBaseFile()
         {
-            var basefile = _serverConfig.CacheConnectionString;
-            if (!Path.IsPathRooted(basefile))
+            var cacheconnectionString = _serverConfig.CacheConnectionString;
+            var workspace = Environment.GetEnvironmentVariable("GITHUB_WORKSPACE");
+            if (!string.IsNullOrEmpty(workspace))
             {
-                basefile = Path.Combine(_serverConfig.RuntimeSettings.DataFolder, _serverConfig.CacheConnectionString);
+                Console.WriteLine($@"DeleteTestBaseFile workspace: {workspace}");
+                cacheconnectionString = Path.Combine(workspace, "Jackett.Test", cacheconnectionString);
+                Console.WriteLine($@"DeleteTestBaseFile workspace Database file path: {cacheconnectionString}");
             }
-
-            Console.WriteLine($@"Database file path: {basefile}");
-            Console.WriteLine($@"Directory exists: {Directory.Exists(_serverConfig.RuntimeSettings.DataFolder)}");
-
-            try
+            else if (!Path.IsPathRooted(cacheconnectionString))
             {
-                File.Delete(basefile);
-            }
-            catch (Exception)
-            {
-                // ignored
+                cacheconnectionString = Path.Combine(_serverConfig.RuntimeSettings.DataFolder, cacheconnectionString);
+                Console.WriteLine($@"DeleteTestBaseFile IsPathRooted Database file path: {cacheconnectionString}");
+                try
+                {
+                    File.Delete(cacheconnectionString);
+                }
+                catch (Exception)
+                {
+                    // ignored
+                }
             }
         }
     }
