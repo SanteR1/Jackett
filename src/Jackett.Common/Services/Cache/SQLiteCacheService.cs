@@ -36,6 +36,7 @@ namespace Jackett.Common.Services.Cache
             {
                 using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_cacheconnectionString)))
                 {
+                    Console.WriteLine($@"Initialize Database file path: {GetConnectionString(_cacheconnectionString)}");
                     connection.Open();
                     var command = connection.CreateCommand();
                     command.CommandText = @"
@@ -244,6 +245,7 @@ namespace Jackett.Common.Services.Cache
 
             using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_cacheconnectionString)))
             {
+                Console.WriteLine($@"Search Database file path: {GetConnectionString(_cacheconnectionString)}");
                 connection.Open();
                 var command = connection.CreateCommand();
                 command.CommandText = @"
@@ -622,6 +624,7 @@ namespace Jackett.Common.Services.Cache
             {
                 using (var connection = new SqliteConnection("Data Source=" + GetConnectionString(_cacheconnectionString)))
                 {
+                    Console.WriteLine($@"PruneCacheByTtl Database file path: {GetConnectionString(_cacheconnectionString)}");
                     connection.Open();
                     var expirationDate = DateTime.Now.AddSeconds(-_serverConfig.CacheTtl);
                     var command = connection.CreateCommand();

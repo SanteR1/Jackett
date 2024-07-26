@@ -40,12 +40,12 @@ namespace Jackett.Test.Common.Indexers
             builder.RegisterType<CacheManager>().AsSelf().SingleInstance();
             builder.RegisterType<ServerConfigurationController>().AsSelf().InstancePerDependency();
             builder.RegisterType<ServerConfig>().AsSelf().SingleInstance();
-
+            _serverConfig =
+                new ServerConfig(new RuntimeSettings()) { CacheType = CacheType.SqLite, CacheConnectionString = "testhtml.db" };
             builder.Register(ctx =>
             {
                 var logger = _logger;
-                var serverConfig = new ServerConfig(new RuntimeSettings()) { CacheType = CacheType.SqLite };
-                return new SQLiteCacheService(logger, serverConfig.CacheConnectionString, serverConfig);
+                return new SQLiteCacheService(logger, _serverConfig.CacheConnectionString, _serverConfig);
             }).AsSelf().SingleInstance();
             _container = builder.Build();
         }
@@ -54,8 +54,6 @@ namespace Jackett.Test.Common.Indexers
         public async Task TestCardigannHtmlWithSQLiteCacheAsync()
         {
             var cacheServiceFactory = _container.Resolve<CacheServiceFactory>();
-            _serverConfig =
-                new ServerConfig(new RuntimeSettings()) { CacheType = CacheType.SqLite, CacheConnectionString = "testhtml.db" };
 
             DeleteTestBaseFile();
 
@@ -117,11 +115,14 @@ namespace Jackett.Test.Common.Indexers
                 basefile = Path.Combine(_serverConfig.RuntimeSettings.DataFolder, _serverConfig.CacheConnectionString);
             }
 
+            Console.WriteLine($@"Database file path: {basefile}");
+            Console.WriteLine($@"Directory exists: {Directory.Exists(_serverConfig.RuntimeSettings.DataFolder)}");
+
             try
             {
                 File.Delete(basefile);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 // ignored
             }
