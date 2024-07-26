@@ -39,8 +39,9 @@ namespace Jackett.Test.Common.Indexers
             builder.RegisterType<CacheManager>().AsSelf().SingleInstance();
             builder.RegisterType<ServerConfigurationController>().AsSelf().InstancePerDependency();
             builder.RegisterType<ServerConfig>().AsSelf().SingleInstance();
+            var testbase = Path.Combine(Directory.GetCurrentDirectory(), "testjson.db");
             _serverConfig =
-                new ServerConfig(new RuntimeSettings()) { CacheType = CacheType.SqLite, CacheConnectionString = "testjson.db" };
+                new ServerConfig(new RuntimeSettings()) { CacheType = CacheType.SqLite, CacheConnectionString = testbase };
             builder.Register(ctx =>
             {
                 var logger = _logger;
@@ -118,26 +119,18 @@ namespace Jackett.Test.Common.Indexers
 
         private void DeleteTestBaseFile()
         {
-            var cacheconnectionString = _serverConfig.CacheConnectionString;
-            var workspace = Directory.GetCurrentDirectory();//Environment.GetEnvironmentVariable("GITHUB_WORKSPACE");
-            if (!string.IsNullOrEmpty(workspace))
+            try
             {
-                Console.WriteLine($@"DeleteTestBaseFile workspace: {workspace}");
-                cacheconnectionString = Path.Combine(workspace, cacheconnectionString);
-                Console.WriteLine($@"DeleteTestBaseFile workspace Database file path: {cacheconnectionString}");
+                var cacheconnectionString = _serverConfig.CacheConnectionString;
+                if (!Path.IsPathRooted(cacheconnectionString))
+                {
+                    cacheconnectionString = Path.Combine(_serverConfig.RuntimeSettings.DataFolder, cacheconnectionString);
+                }
+                File.Delete(cacheconnectionString);
             }
-            else if (!Path.IsPathRooted(cacheconnectionString))
+            catch
             {
-                cacheconnectionString = Path.Combine(_serverConfig.RuntimeSettings.DataFolder, cacheconnectionString);
-                Console.WriteLine($@"DeleteTestBaseFile IsPathRooted Database file path: {cacheconnectionString}");
-                try
-                {
-                    File.Delete(cacheconnectionString);
-                }
-                catch (Exception)
-                {
-                    // ignored
-                }
+                // ignored
             }
         }
     }
