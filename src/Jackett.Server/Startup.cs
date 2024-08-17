@@ -9,6 +9,7 @@ using Jackett.Common.Plumbing;
 using Jackett.Common.Services;
 using Jackett.Common.Services.Cache;
 using Jackett.Common.Services.Interfaces;
+using Jackett.Common.Utils;
 using Jackett.Server.Controllers;
 using Jackett.Server.Middleware;
 using Jackett.Server.Services;
@@ -25,6 +26,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Serialization;
 using NLog;
+using Dapper;
+using Jackett.Common.Models;
+
 #if !NET462
 using Microsoft.Extensions.Hosting;
 #endif
@@ -140,7 +144,7 @@ namespace Jackett.Server
                 var config = ctx.Resolve<ServerConfig>();
                 return factory.CreateCacheService(config.CacheType, config.CacheConnectionString);
             }).SingleInstance();
-
+            RegisterDapperTypeHandlers();
             var container = builder.Build();
             Helper.ApplicationContainer = container;
 
@@ -249,5 +253,21 @@ namespace Jackett.Server
         }
 
         private static void OnStopped() => Helper.Logger.Info($"Jackett stopped");
+        private void RegisterDapperTypeHandlers()
+        {
+            var logger = LogManager.GetCurrentClassLogger();
+            SqlMapper.RemoveTypeMap(typeof(DateTime));
+            SqlMapper.RemoveTypeMap(typeof(DateTime?));
+            SqlMapper.RemoveTypeMap(typeof(string));
+            SqlMapper.AddTypeHandler(new NullableDateTimeHandler(logger));
+            SqlMapper.AddTypeHandler(new StringHandler(logger));
+            SqlMapper.AddTypeHandler(new UriHandler(logger));
+            SqlMapper.AddTypeHandler(new ICollectionIntHandler(logger));
+            SqlMapper.AddTypeHandler(new FloatHandler(logger));
+            SqlMapper.AddTypeHandler(new LongHandler(logger));
+            SqlMapper.AddTypeHandler(new DoubleHandler(logger));
+            SqlMapper.AddTypeHandler(new ICollectionStringHandler(logger));
+            SqlMapper.AddTypeHandler(new DateTimeHandler(logger));
+        }
     }
 }

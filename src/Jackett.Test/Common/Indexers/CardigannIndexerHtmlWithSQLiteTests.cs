@@ -3,10 +3,12 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Autofac;
+using Dapper;
 using Jackett.Common.Indexers.Definitions;
 using Jackett.Common.Models;
 using Jackett.Common.Models.Config;
 using Jackett.Common.Services.Cache;
+using Jackett.Common.Utils;
 using Jackett.Server.Controllers;
 using Jackett.Test.TestHelpers;
 using NLog;
@@ -48,6 +50,18 @@ namespace Jackett.Test.Common.Indexers
                 var logger = _logger;
                 return new SQLiteCacheService(logger, _serverConfig.CacheConnectionString, _serverConfig);
             }).AsSelf().SingleInstance();
+            SqlMapper.RemoveTypeMap(typeof(DateTime));
+            SqlMapper.RemoveTypeMap(typeof(DateTime?));
+            SqlMapper.RemoveTypeMap(typeof(string));
+            SqlMapper.AddTypeHandler(new NullableDateTimeHandler(_logger));
+            SqlMapper.AddTypeHandler(new StringHandler(_logger));
+            SqlMapper.AddTypeHandler(new UriHandler(_logger));
+            SqlMapper.AddTypeHandler(new ICollectionIntHandler(_logger));
+            SqlMapper.AddTypeHandler(new FloatHandler(_logger));
+            SqlMapper.AddTypeHandler(new LongHandler(_logger));
+            SqlMapper.AddTypeHandler(new DoubleHandler(_logger));
+            SqlMapper.AddTypeHandler(new ICollectionStringHandler(_logger));
+            SqlMapper.AddTypeHandler(new DateTimeHandler(_logger));
             _container = builder.Build();
         }
 

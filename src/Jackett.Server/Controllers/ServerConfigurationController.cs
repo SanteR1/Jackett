@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Jackett.Common.Models;
 using Jackett.Common.Models.Config;
@@ -114,6 +115,15 @@ namespace Jackett.Server.Controllers
 
             var cacheType = config.cache_type;
             var cacheConString = config.cache_connection_string;
+
+            if (cacheType == CacheType.SqLite || cacheType == CacheType.MongoDb)
+            {
+                if (string.IsNullOrEmpty(cacheConString) || !Regex.IsMatch(cacheConString, @"^.+\.db$"))
+                {
+                    throw new Exception("Cache Connection String: Is Empty or Bad name");
+                }
+            }
+
             var cacheTtl = config.cache_ttl;
             var cacheMaxResultsPerIndexer = config.cache_max_results_per_indexer;
             var omdbApiKey = config.omdbkey;
