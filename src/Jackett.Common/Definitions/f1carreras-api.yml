@@ -63,6 +63,7 @@ login:
     - selector: a[href*="/login"]
       message:
         text: "The API key was not accepted by {{ .Config.sitelink }}."
+    - selector: :root:contains("Account is Banned")
 
 search:
   paths:
@@ -153,7 +154,9 @@ search:
       case:
         False: 1 # normal
         True: 2 # double
+    minimumratio:
+      text: 1.0
     minimumseedtime:
-      # 6 hours (as seconds = 6 x 60 x 60)
-      text: 21600
+      # 12 hours (as seconds = 12 x 60 x 60)
+      text: 43200
 # json UNIT3D 7.2.5

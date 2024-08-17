@@ -423,6 +423,7 @@ namespace Jackett.Updater
                 "Definitions/greeklegends.yml",
                 "Definitions/greekteam.yml",
                 "Definitions/gtorrent.yml",
+                "Definitions/h-p2p.yml",
                 "Definitions/hachede-c.yml",
                 "Definitions/hachede.yml",
                 "Definitions/hamsterstudio.yml",
@@ -494,7 +495,6 @@ namespace Jackett.Updater
                 "Definitions/lilleskyorg.yml",
                 "Definitions/limetorrentsclone.yml",
                 "Definitions/mactorrents.yml",
-                "Definitions/madsrevolution.yml",
                 "Definitions/magicheaven.yml",
                 "Definitions/magico.yml", // renamed to trellas
                 "Definitions/magnet4you.yml",
@@ -598,6 +598,7 @@ namespace Jackett.Updater
                 "Definitions/rus-media.yml",
                 "Definitions/scenefz.yml", // migrated to C# XtremeZone base tracker
                 "Definitions/scenehd.yml", // migrated to C# (use JSON API)
+                "Definitions/scenelinks.yml",
                 "Definitions/scenepalace.yml",
                 "Definitions/scenereactor.yml",
                 "Definitions/scenexpress.yml",
@@ -721,6 +722,7 @@ namespace Jackett.Updater
                 "Definitions/utorrents.yml", // same as SzeneFZ now
                 "Definitions/vanila.yml",
                 "Definitions/vhstapes.yml",
+                "Definitions/visionhd-api.yml",
                 "Definitions/vizuk.yml",
                 "Definitions/vtorrent.yml",
                 "Definitions/waffles.yml",
