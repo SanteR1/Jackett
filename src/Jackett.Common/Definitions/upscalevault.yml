@@ -1,33 +1,24 @@
 ---
-id: h-p2p
-name: H-P2P
-description: "H-P2P is a Private Torrent Tracker for OnlyFans XXX"
+id: upscalevault-api
+name: Upscale Vault (API)
+description: "Upscale Vault is a Private Torrent Tracker for AI upscaled and remastered MOVIES / TV"
 language: en-US
 type: private
 encoding: UTF-8
 links:
-  - https://h-p2p.xyz/
-legacylinks:
-  - https://h-p2p.cam/
+  - https://upscalevault.com/
 
 caps:
   categorymappings:
-    - {id: 1, cat: XXX/WEB-DL, desc: "OnlyFans"}
-    - {id: 2, cat: XXX/WEB-DL, desc: "Fansly"}
-    - {id: 3, cat: XXX/WEB-DL, desc: "Privacy"}
-    - {id: 4, cat: XXX/WEB-DL, desc: "JustForFans"}
-    - {id: 5, cat: XXX/WEB-DL, desc: "ManyVids"}
-    - {id: 6, cat: XXX/WEB-DL, desc: "Clips4Sale"}
-    - {id: 7, cat: XXX/WEB-DL, desc: "Hentai"}
-    - {id: 8, cat: XXX/WEB-DL, desc: "JAV"}
-    - {id: 9, cat: XXX/WEB-DL, desc: "Paid Site"}
-    - {id: 10, cat: XXX/WEB-DL, desc: "HomeMade"}
-    - {id: 11, cat: XXX/WEB-DL, desc: "Other"}
-    - {id: 27, cat: XXX/WEB-DL, desc: "Gay"}
-    - {id: 28, cat: XXX/WEB-DL, desc: "XXX Movie"}
+    - {id: 1, cat: Movies, desc: "Movies"}
+    - {id: 2, cat: TV, desc: "TV"}
 
   modes:
     search: [q]
+    tv-search: [q, season, ep, imdbid, tvdbid, tmdbid]
+    movie-search: [q, imdbid, tmdbid]
+    music-search: [q]
+    book-search: [q]
 
 settings:
   - name: apikey
@@ -36,7 +27,7 @@ settings:
   - name: info_key
     type: info
     label: About your API key
-    default: "Find or Generate a new API Token by accessing your <a href=\"https://h-p2p.cam/\" target=\"_blank\">H-P2P</a> account <i>My Settings</i> page and clicking on the <b>API Key</b> tab."
+    default: "Find or Generate a new API Token by accessing your <a href=\"https://upscalevault.com/\" target=\"_blank\">Upscale Vault</a> account <i>My Settings</i> page and clicking on the <b>API Key</b> tab."
   - name: freeleech
     type: checkbox
     label: Search freeleech only
@@ -69,6 +60,7 @@ login:
     - selector: a[href*="/login"]
       message:
         text: "The API key was not accepted by {{ .Config.sitelink }}."
+    - selector: :root:contains("Account is Banned")
 
 search:
   paths:
@@ -82,12 +74,18 @@ search:
     Authorization: ["Bearer {{ .Config.apikey }}"]
 
   inputs:
+  # if we have an id based search, add Season and Episode as query in name for UNIT3D < v6.  Else pass S/E Params for UNIT3D >= v6
     $raw: "{{ range .Categories }}&categories[]={{.}}{{end}}"
     name: "{{ .Keywords }}"
+    seasonNumber: "{{ .Query.Season }}"
+    episodeNumber: "{{ .Query.Ep }}"
+    imdbId: "{{ .Query.IMDBIDShort }}"
+    tmdbId: "{{ .Query.TMDBID }}"
+    tvdbId: "{{ .Query.TVDBID }}"
     "free[]": "{{ if .Config.freeleech }}100{{ else }}{{ end }}"
     sortField: "{{ .Config.sort }}"
     sortDirection: "{{ .Config.type }}"
-    perPage: 75
+    perPage: 100
 
   keywordsfilters:
     - name: re_replace
@@ -98,8 +96,6 @@ search:
     attribute: attributes
 
   fields:
-    _id:
-      selector: ..id
     category:
       selector: category_id
     title_optional:
@@ -118,7 +114,16 @@ search:
     infohash:
       selector: info_hash
     poster:
-      text: "{{ .Config.sitelink }}files/img/torrent-cover_{{ .Result._id }}.jpg"
+      selector: meta.poster
+      filters:
+        - name: replace
+          args: ["https://via.placeholder.com/90x135", ""]
+    imdbid:
+      selector: imdb_id
+    tmdbid:
+      selector: tmdb_id
+    tvdbid:
+      selector: tvdb_id
     genre:
       selector: meta.genres
       filters:
@@ -160,7 +165,10 @@ search:
       case:
         False: 1 # normal
         True: 2 # double
+# global MR is 0.5 but torrents must be seeded for 14 days regardless of ratio
+#    minimumratio:
+#      text: 0.5
     minimumseedtime:
-      # 2 days (as seconds = 2 x 24 x 60 x 60)
-      text: 172800
-# json UNIT3D 8.1.3 (custom)
+      # 14 day (as seconds = 14 x 24 x 60 x 60)
+      text: 1209600
+# json UNIT3D 8.1.3
