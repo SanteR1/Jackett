@@ -397,11 +397,12 @@ namespace Jackett.Common.Services.Cache
             {
                 lock (_dbLock)
                 {
+                    if (string.IsNullOrEmpty(cacheconnectionString))//TODO for MongoDB || !Regex.IsMatch(cacheconnectionString, @"^.+\.db$"))
+                        throw new Exception("Cache Connection String: Is Empty or Bad name. Example: localhost:27017");
+
                     if (_cacheconnectionString != cacheconnectionString)
                     {
                         _cacheconnectionString = cacheconnectionString;
-                        var client = new MongoClient("mongodb://" + _cacheconnectionString);
-                        _database = client.GetDatabase("CacheDatabase");
                         Initialize();
                     }
                 }
