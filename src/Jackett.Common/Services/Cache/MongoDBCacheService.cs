@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -417,16 +416,8 @@ namespace Jackett.Common.Services.Cache
         private string GetQueryHash(TorznabQuery query)
         {
             var json = GetSerializedQuery(query);
-            try
-            {
-                //_logger.Info("GetQueryHash json {0}", json);
-                return BitConverter.ToString(_sha256.ComputeHash(Encoding.UTF8.GetBytes(json)));
-            }
-            catch (Exception ex)
-            {
-                _logger.Info("GetQueryHash error {0}", ex.Message);
-                throw;
-            }
+            return BitConverter.ToString(_sha256.ComputeHash(Encoding.UTF8.GetBytes(json)));
+
         }
         private static string GetSerializedQuery(TorznabQuery query)
         {
@@ -437,9 +428,6 @@ namespace Jackett.Common.Services.Cache
 
         private void PruneCacheByTtl()
         {
-            var sw = new Stopwatch();
-            sw.Start();
-            //_logger.Info("PruneCacheByTtl CacheTtl = {0}", _serverConfig.CacheTtl);
             if (_serverConfig.CacheTtl <= 0)
             {
                 if (_logger.IsDebugEnabled)
@@ -447,7 +435,6 @@ namespace Jackett.Common.Services.Cache
 
                 return;
             }
-
 
             //lock (_dbLock)
             {
@@ -464,8 +451,6 @@ namespace Jackett.Common.Services.Cache
                 {
                     if (_logger.IsDebugEnabled)
                         _logger.Debug("No expired documents found in TrackerCacheQueries for pruning.");
-                    sw.Stop();
-                    _logger.Info("PruneCacheByTtl {0}", sw.ElapsedMilliseconds);
                     return;
                 }
                 var expiredTrackerCacheQueryIds = expiredTrackerCacheQueryDocs.Select(doc => doc["_id"].AsObjectId).ToList();
@@ -483,8 +468,6 @@ namespace Jackett.Common.Services.Cache
                     _logger.Debug("Pruned {0} documents from TrackerCacheQueries", deleteResult3.DeletedCount);
                     PrintCacheStatus();
                 }
-                sw.Stop();
-                _logger.Info("PruneCacheByTtl {0}",sw.ElapsedMilliseconds);
             }
         }
 

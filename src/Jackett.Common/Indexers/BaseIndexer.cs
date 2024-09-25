@@ -359,12 +359,7 @@ namespace Jackett.Common.Indexers
 
             if (queryCopy.Cache)
             {
-                var sw = new Stopwatch();
-                sw.Start();
                 var cachedReleases = cacheManager.Search(this, queryCopy);
-                sw.Stop();
-                logger.Info("cacheManager.Search() затратил {0}", sw.ElapsedMilliseconds);
-
                 if (cachedReleases != null)
                     return new IndexerResult(this, cachedReleases, 0, true);
             }
@@ -381,11 +376,7 @@ namespace Jackett.Common.Indexers
 
                 results = FilterResults(queryCopy, results).ToList();
                 results = FixResults(queryCopy, results).ToList();
-                var sww = new Stopwatch();
-                sww.Start();
                 cacheManager.CacheResults(this, queryCopy, results.ToList());
-                sww.Stop();
-                logger.Info("cacheManager.CacheResults {0}", sww.ElapsedMilliseconds);
                 errorCount = 0;
                 expireAt = DateTime.Now.Add(HealthyStatusValidity);
                 return new IndexerResult(this, results, sw.ElapsedMilliseconds, false);
