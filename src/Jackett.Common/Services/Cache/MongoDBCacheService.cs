@@ -42,53 +42,22 @@ namespace Jackett.Common.Services.Cache
             var trackerCacheQueries = _database.GetCollection<BsonDocument>("TrackerCacheQueries");
             var releaseInfos = _database.GetCollection<BsonDocument>("ReleaseInfos");
 
-
-
-
             //TODO
-            //var trackerIdIndex = Builders<BsonDocument>.IndexKeys.Ascending("TrackerId");
-            //var createIndexTrackerCache = new CreateIndexModel<BsonDocument>(trackerIdIndex);
-            //trackerCaches.Indexes.CreateOne(createIndexTrackerCache);
+            var releaseInfosindexModel = new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("TrackerCacheQueryId"));
+            releaseInfos.Indexes.CreateOne(releaseInfosindexModel);
 
-            //var queryHashIndex = Builders<BsonDocument>.IndexKeys.Ascending("QueryHash");
-            //var createIndexTrackerCacheQueries = new CreateIndexModel<BsonDocument>(queryHashIndex);
-            //trackerCacheQueries.Indexes.CreateOne(createIndexTrackerCacheQueries);
-
-
-
-
-            
-            var indexModel = new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("TrackerCacheQueryId"));
-            releaseInfos.Indexes.CreateOne(indexModel);
-
-            //Индексы для коллекции TrackerCacheQueries
             var trackerCacheQueriesIndexes = Builders<BsonDocument>.IndexKeys
-                                                                   // Индекс для поля TrackerCacheQueryId
                                                                    .Ascending("QueryHash")
                                                                    .Ascending("TrackerCacheId");
-
-            // Индекс для поля QueryHash (может пригодиться для оптимизации поиска)
 
             var trackerCacheQueriesIndexModel = new CreateIndexModel<BsonDocument>(trackerCacheQueriesIndexes);
             trackerCacheQueries.Indexes.CreateOne(trackerCacheQueriesIndexModel);
 
-
-            //Console.WriteLine("Created index on TrackerCacheQueries");
             var indextrackerCacheQueries = new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("QueryHash"));
             trackerCacheQueries.Indexes.CreateOne(indextrackerCacheQueries);
             indextrackerCacheQueries = new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("TrackerCacheId"));
             trackerCacheQueries.Indexes.CreateOne(indextrackerCacheQueries);
 
-
-            // Индексы для коллекции TrackerCaches
-            //var trackerCachesIndexes = Builders<BsonDocument>.IndexKeys
-            //                                                 .Ascending("TrackerCacheId")         // Индекс для поля TrackerCacheId
-            //                                                 .Ascending("TrackerId")
-            //                                                 .Ascending("_id");
-            //;             // Индекс для поля TrackerId
-
-            //var trackerCachesIndexModel = new CreateIndexModel<BsonDocument>(trackerCachesIndexes);
-            //trackerCaches.Indexes.CreateOne(trackerCachesIndexModel);
             var trackerCachesIndexes = new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("TrackerId"));
             trackerCaches.Indexes.CreateOne(trackerCachesIndexes);
             trackerCachesIndexes = new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("TrackerCacheId"));
@@ -202,40 +171,16 @@ namespace Jackett.Common.Services.Cache
             if (_serverConfig.CacheType == CacheType.Disabled)
                 return null;
 
-            //PruneCacheByTtl();
+            PruneCacheByTtl();
 
-            var sw = new Stopwatch();
-            var sw1 = new Stopwatch();
-            sw.Start();
             var queryHash = GetQueryHash(query);
-            var releaseInfos = _database.GetCollection<BsonDocument>("ReleaseInfos");
 
-            sw.Stop();
-            _logger.Info("queryHash and releaseInfos {0}", sw.ElapsedMilliseconds);
-
-            //var results = releaseInfos.Aggregate()
-            //                                .Lookup("TrackerCacheQueries", "TrackerCacheQueryId", "_id", "TrackerCacheQuery")
-            //                                .Match(Builders<BsonDocument>.Filter.Eq("TrackerCacheQuery.QueryHash", queryHash))  // Применение фильтра на ранних этапах
-            //                                .Unwind("TrackerCacheQuery")
-            //                                .Lookup("TrackerCaches", "TrackerCacheQuery.TrackerCacheId", "_id", "TrackerCache")
-            //                                .Match(Builders<BsonDocument>.Filter.Eq("TrackerCache.TrackerId", indexer.Id))  // Применение фильтра
-            //                                .Unwind("TrackerCache")
-            //                                .ToList();
-            sw.Start();
-            sw1.Start();
-            // Получаем TrackerCaches и извлекаем ObjectId
             var trackerCaches = _database.GetCollection<BsonDocument>("TrackerCaches")
                                          .Find(Builders<BsonDocument>.Filter.Eq("TrackerId", indexer.Id))
                                          .ToList();
 
-            // Извлекаем ObjectId для фильтрации
             var trackerCacheIds = trackerCaches.Select(doc => doc.GetValue("_id").AsObjectId).ToList();
 
-            sw.Stop();
-            _logger.Info("Search 2 results {0}", sw.ElapsedMilliseconds);
-            sw.Start();
-
-            // Применяем фильтр для TrackerCacheQueries с использованием ObjectId
             var trackerCacheQueries = _database.GetCollection<BsonDocument>("TrackerCacheQueries")
                                                .Find(Builders<BsonDocument>.Filter.And(
                                                          Builders<BsonDocument>.Filter.Eq("QueryHash", queryHash),
@@ -243,44 +188,13 @@ namespace Jackett.Common.Services.Cache
                                                          ))
                                                .ToList();
 
-            Console.WriteLine(trackerCacheQueries.Count); // Выводим количество найденных документов
             var trackerCacheQueryIds = trackerCacheQueries.Select(q => q["_id"].AsObjectId).ToList();
 
-            sw.Stop();
-            _logger.Info("Search 1 results {0}", sw.ElapsedMilliseconds);
-
-            //sw.Start();
-            //var trackerCaches = _database.GetCollection<BsonDocument>("TrackerCaches")
-            //                            .Find(Builders<BsonDocument>.Filter.Eq("TrackerId", indexer.Id))
-            //                            .ToList();
-
-            //var trackerCacheIds = trackerCaches.Select(c => c["_id"].AsObjectId).ToList();
-            //sw.Stop();
-            //_logger.Info("Search 2 results {0}", sw.ElapsedMilliseconds);
-            sw.Start();
             var results = _database.GetCollection<BsonDocument>("ReleaseInfos")
                                        .Find(Builders<BsonDocument>.Filter.And(
-                                                 Builders<BsonDocument>.Filter.In("TrackerCacheQueryId", trackerCacheQueryIds)//,
-                                                 //Builders<BsonDocument>.Filter.In("TrackerCacheId", trackerCacheIds)
-                                                 ))
+                                                 Builders<BsonDocument>.Filter.In("TrackerCacheQueryId", trackerCacheQueryIds)))
                                        .ToList();
-            sw.Stop();
-            sw1.Stop();
-            //var results1 = releaseInfos.Select(ri => {
-            //    var trackerCacheQuery = trackerCacheQueries.FirstOrDefault(q => q["_id"] == ri["TrackerCacheQueryId"]);
-            //    var trackerCache = trackerCaches.FirstOrDefault(c => c["_id"] == ri["TrackerCacheId"]);
 
-            //    ri["TrackerCacheQuery"] = trackerCacheQuery;
-            //    ri["TrackerCache"] = trackerCache;
-
-            //    return ri;
-            //}).ToList();
-
-
-
-
-            _logger.Info("Search 3 results {0}", sw.ElapsedMilliseconds);
-            _logger.Info("Search All results {0}", sw1.ElapsedMilliseconds);
             if (results.Count > 0)
             {
                 if (_logger.IsDebugEnabled)
